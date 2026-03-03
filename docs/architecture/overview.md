@@ -92,6 +92,8 @@ Responsibility: setup diagnostics + hook installation.
 - applies OS-aware privilege strategy for protected paths
 	- Linux: attempts `pkexec` for privileged write
 	- macOS/Windows: returns manual/admin guidance (no auto-elevation yet)
+- verifies Valet Linux / PHP-FPM wiring for `auto_prepend_file` propagation
+- applies optional Valet Linux remediation (guarded apply with explicit confirmation)
 - returns diagnostics/install results for UI operations
 
 ### `main` package (`app.go`, `main.go`)
@@ -186,12 +188,14 @@ Why:
 - frontend listener lifecycle hardening and duplicate-event protection for runtime stream
 - prepend hook stability fix so `dd()` emits a single event (no double emit)
 - verified hook rewrite path (`Enable CLI Hook`) updates user prepend script in config dir
+- Valet Linux verification report (CLI conf.d + discovered FPM services + recommendations)
+- Valet Linux guarded remediation action (writes FPM hook ini + restart attempts with sudo fallback commands)
 
 ## Remaining work (next stage)
 
 Primary next milestones:
 
-1. Valet Linux / FPM verification path (service restart + effective ini validation + end-to-end capture checks)
+1. Improve remediation safety UX (preview diff + per-service selective apply)
 2. macOS/Windows privileged automation for hook install
 3. Dump transport fallback mode (Symfony dump server adapter)
 4. Persistence and retention controls
@@ -204,5 +208,6 @@ Primary next milestones:
 - Collector: [internal/collector/server.go](../../internal/collector/server.go), [internal/collector/buffer.go](../../internal/collector/buffer.go), [internal/collector/path.go](../../internal/collector/path.go)
 - Setup diagnostics: [internal/setup/diagnostics.go](../../internal/setup/diagnostics.go)
 - Setup hook installer: [internal/setup/hook_installer.go](../../internal/setup/hook_installer.go)
+- Valet verifier: [internal/setup/valet_linux.go](../../internal/setup/valet_linux.go)
 - Frontend live UI: [frontend/src/App.tsx](../../frontend/src/App.tsx)
 - Schema spec: [docs/specs/dump-event-schema.md](../specs/dump-event-schema.md)

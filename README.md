@@ -28,4 +28,6 @@ To build a redistributable, production mode package, use `wails build`.
 
 - CLI dump capture is stable for `dump()` and `dd()` with one event per call.
 - Hook installer rewrites user prepend script at `~/.config/phant/php/phant_prepend.php` and configures CLI via `99-phant.ini` when available.
+- Valet Linux verification panel now reports FPM service wiring, active/enabled state, and recommended remediation commands.
+- Valet Linux panel includes guarded remediation apply flow (explicit confirmation required) to write FPM `99-phant.ini` and attempt service restarts.
 - Linux priority is now expanding from CLI-only verification to Valet Linux / FPM service boundary verification.

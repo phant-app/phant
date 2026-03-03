@@ -128,6 +128,14 @@ func (a *App) EnableCLIHook() setup.HookInstallResult {
 	return setup.InstallCLIHook(context.Background(), socketPath)
 }
 
+func (a *App) GetValetLinuxVerification() setup.ValetLinuxVerification {
+	return setup.VerifyValetLinux(context.Background())
+}
+
+func (a *App) ApplyValetLinuxRemediation(confirm bool) setup.ValetLinuxRemediationResult {
+	return setup.ApplyValetLinuxRemediation(context.Background(), confirm)
+}
+
 func (a *App) startCollectorEventBridge() {
 	if a.collector == nil {
 		return

@@ -2,11 +2,13 @@ import {useEffect, useState} from 'react';
 import './App.css';
 import {EventsOffAll, EventsOn} from "../wailsjs/runtime/runtime";
 import {
+    ApplyValetLinuxRemediation,
     DumpEventChannelName,
     EnableCLIHook,
     GetCollectorStatus,
     GetRecentEvents,
     GetSetupDiagnostics,
+    GetValetLinuxVerification,
 } from "../wailsjs/go/main/App";
 
 type DumpEvent = {
@@ -47,6 +49,58 @@ type HookInstallResult = {
     error: string;
 };
 
+type FPMServiceStatus = {
+    serviceName: string;
+    version: string;
+    confDPath: string;
+    hookIniPath: string;
+    hookIniExists: boolean;
+    autoPrependFile: string;
+    matchesExpected: boolean;
+    systemdActive: boolean;
+    systemdEnabled: boolean;
+    restartCommand: string;
+    verificationCommand: string;
+};
+
+type ValetLinuxVerification = {
+    generatedAt: string;
+    supported: boolean;
+    valetDetected: boolean;
+    serviceManager: string;
+    cliConfDPath: string;
+    cliAutoPrepend: string;
+    expectedPrependPath: string;
+    fpmServices: FPMServiceStatus[];
+    recommendations: string[];
+    lastError: string;
+};
+
+type ValetRemediationTarget = {
+    serviceName: string;
+    hookIniPath: string;
+    writeAttempted: boolean;
+    written: boolean;
+    writeError: string;
+    restartAttempted: boolean;
+    restarted: boolean;
+    restartError: string;
+    restartCommand: string;
+};
+
+type ValetLinuxRemediationResult = {
+    generatedAt: string;
+    supported: boolean;
+    confirmed: boolean;
+    applied: boolean;
+    expectedPrependPath: string;
+    requiresSudo: boolean;
+    suggestedCommands: string[];
+    targets: ValetRemediationTarget[];
+    message: string;
+    error: string;
+};
+
 const MAX_RENDERED_EVENTS = 500;
 
 function App() {
@@ -54,8 +108,13 @@ function App() {
     const [channelName, setChannelName] = useState<string>('');
     const [status, setStatus] = useState<CollectorStatus | null>(null);
     const [diagnostics, setDiagnostics] = useState<SetupDiagnostics | null>(null);
+    const [valetVerification, setValetVerification] = useState<ValetLinuxVerification | null>(null);
     const [hookResult, setHookResult] = useState<HookInstallResult | null>(null);
     const [installingHook, setInstallingHook] = useState(false);
+    const [refreshingValet, setRefreshingValet] = useState(false);
+    const [valetRemediationResult, setValetRemediationResult] = useState<ValetLinuxRemediationResult | null>(null);
+    const [applyingValetRemediation, setApplyingValetRemediation] = useState(false);
+    const [confirmValetRemediation, setConfirmValetRemediation] = useState(false);
 
     useEffect(() => {
         let disposed = false;
@@ -78,11 +137,12 @@ function App() {
         };
 
         const load = async () => {
-            const [resolvedChannel, collectorStatus, recentEvents, setupDiagnostics] = await Promise.all([
+            const [resolvedChannel, collectorStatus, recentEvents, setupDiagnostics, valetStatus] = await Promise.all([
                 DumpEventChannelName(),
                 GetCollectorStatus(),
                 GetRecentEvents(MAX_RENDERED_EVENTS),
                 GetSetupDiagnostics(),
+                GetValetLinuxVerification(),
             ]);
 
             if (disposed) {
@@ -93,6 +153,7 @@ function App() {
             setStatus(collectorStatus);
             setEvents(recentEvents);
             setDiagnostics(setupDiagnostics);
+            setValetVerification(valetStatus);
 
             unsubscribe = EventsOn(resolvedChannel, (event: DumpEvent) => {
                 appendEvent(event);
@@ -131,15 +192,41 @@ function App() {
         void GetSetupDiagnostics().then(setDiagnostics);
     };
 
+    const refreshValetVerification = async () => {
+        setRefreshingValet(true);
+        try {
+            const result = await GetValetLinuxVerification();
+            setValetVerification(result);
+        } finally {
+            setRefreshingValet(false);
+        }
+    };
+
     const enableCLIHook = async () => {
         setInstallingHook(true);
         try {
             const result = await EnableCLIHook();
             setHookResult(result);
-            const latestDiagnostics = await GetSetupDiagnostics();
+            const [latestDiagnostics, latestValetStatus] = await Promise.all([
+                GetSetupDiagnostics(),
+                GetValetLinuxVerification(),
+            ]);
             setDiagnostics(latestDiagnostics);
+            setValetVerification(latestValetStatus);
         } finally {
             setInstallingHook(false);
+        }
+    };
+
+    const applyValetRemediation = async () => {
+        setApplyingValetRemediation(true);
+        try {
+            const result = await ApplyValetLinuxRemediation(confirmValetRemediation);
+            setValetRemediationResult(result);
+            const latestValetStatus = await GetValetLinuxVerification();
+            setValetVerification(latestValetStatus);
+        } finally {
+            setApplyingValetRemediation(false);
         }
     };
 
@@ -189,6 +276,81 @@ function App() {
                     </>
                 ) : null}
                 <div><strong>Note:</strong> CLI hook may require sudo when PHP config is under /etc. Web/FPM support comes next.</div>
+            </section>
+
+            <section className="status-grid diagnostics-grid">
+                <div className="diagnostics-header">
+                    <strong>Valet Linux verification</strong>
+                    <div className="actions-row">
+                        <button className="btn" onClick={refreshValetVerification} disabled={refreshingValet}>
+                            {refreshingValet ? 'Checking...' : 'Refresh Valet'}
+                        </button>
+                        <button
+                            className="btn"
+                            onClick={applyValetRemediation}
+                            disabled={applyingValetRemediation || !confirmValetRemediation}
+                        >
+                            {applyingValetRemediation ? 'Applying...' : 'Apply Remediation'}
+                        </button>
+                    </div>
+                </div>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={confirmValetRemediation}
+                        onChange={(event) => setConfirmValetRemediation(event.target.checked)}
+                    />{' '}
+                    Confirm I want to modify FPM hook ini files and attempt service restarts.
+                </label>
+                <div><strong>Generated:</strong> {valetVerification?.generatedAt || 'n/a'}</div>
+                <div><strong>Supported OS:</strong> {valetVerification?.supported ? 'yes' : 'no'}</div>
+                <div><strong>Valet detected:</strong> {valetVerification?.valetDetected ? 'yes' : 'no'}</div>
+                <div><strong>Service manager:</strong> {valetVerification?.serviceManager || 'n/a'}</div>
+                <div><strong>CLI conf.d path:</strong> {valetVerification?.cliConfDPath || 'n/a'}</div>
+                <div><strong>CLI auto_prepend_file:</strong> {valetVerification?.cliAutoPrepend || 'n/a'}</div>
+                <div><strong>Expected prepend:</strong> {valetVerification?.expectedPrependPath || 'n/a'}</div>
+                {valetVerification?.lastError ? <div><strong>Verification error:</strong> {valetVerification.lastError}</div> : null}
+
+                {valetVerification?.fpmServices?.length ? (
+                    <>
+                        <div><strong>PHP-FPM services:</strong></div>
+                        {valetVerification.fpmServices.map((service) => (
+                            <pre key={service.serviceName} className="event-item">{JSON.stringify(service, null, 2)}</pre>
+                        ))}
+                    </>
+                ) : null}
+
+                {valetVerification?.recommendations?.length ? (
+                    <>
+                        <div><strong>Recommendations:</strong></div>
+                        {valetVerification.recommendations.map((item, index) => (
+                            <div key={`${index}-${item}`}>- {item}</div>
+                        ))}
+                    </>
+                ) : null}
+
+                {valetRemediationResult ? (
+                    <>
+                        <div><strong>Remediation status:</strong> {valetRemediationResult.applied ? 'applied' : 'not applied'}</div>
+                        <div><strong>Remediation message:</strong> {valetRemediationResult.message || valetRemediationResult.error || 'n/a'}</div>
+                        {valetRemediationResult.targets?.length ? (
+                            <>
+                                <div><strong>Remediation targets:</strong></div>
+                                {valetRemediationResult.targets.map((target) => (
+                                    <pre key={target.serviceName} className="event-item">{JSON.stringify(target, null, 2)}</pre>
+                                ))}
+                            </>
+                        ) : null}
+                        {valetRemediationResult.suggestedCommands?.length ? (
+                            <>
+                                <div><strong>Suggested commands:</strong></div>
+                                {valetRemediationResult.suggestedCommands.map((command, index) => (
+                                    <pre key={`${index}-${command}`} className="event-item">{command}</pre>
+                                ))}
+                            </>
+                        ) : null}
+                    </>
+                ) : null}
             </section>
 
             <section className="events-section">
