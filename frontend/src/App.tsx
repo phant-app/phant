@@ -1,8 +1,9 @@
 import {useEffect, useState} from 'react';
 import './App.css';
-import {EventsOff, EventsOn} from "../wailsjs/runtime/runtime";
+import {EventsOffAll, EventsOn} from "../wailsjs/runtime/runtime";
 import {
     DumpEventChannelName,
+    EnableCLIHook,
     GetCollectorStatus,
     GetRecentEvents,
     GetSetupDiagnostics,
@@ -33,6 +34,19 @@ type SetupDiagnostics = {
     lastError: string;
 };
 
+type HookInstallResult = {
+    success: boolean;
+    alreadyEnabled: boolean;
+    phpIniPath: string;
+    prependPath: string;
+    backupPath: string;
+    socketPath: string;
+    requiresSudo?: boolean;
+    suggestedCmd?: string;
+    message: string;
+    error: string;
+};
+
 const MAX_RENDERED_EVENTS = 500;
 
 function App() {
@@ -40,12 +54,21 @@ function App() {
     const [channelName, setChannelName] = useState<string>('');
     const [status, setStatus] = useState<CollectorStatus | null>(null);
     const [diagnostics, setDiagnostics] = useState<SetupDiagnostics | null>(null);
+    const [hookResult, setHookResult] = useState<HookInstallResult | null>(null);
+    const [installingHook, setInstallingHook] = useState(false);
 
     useEffect(() => {
-        let activeChannel = '';
+        let disposed = false;
+        let unsubscribe: (() => void) | null = null;
+
+        EventsOffAll();
 
         const appendEvent = (event: DumpEvent) => {
             setEvents((prev) => {
+                if (prev.some((existing) => existing.id === event.id)) {
+                    return prev;
+                }
+
                 const next = [...prev, event];
                 if (next.length <= MAX_RENDERED_EVENTS) {
                     return next;
@@ -62,13 +85,16 @@ function App() {
                 GetSetupDiagnostics(),
             ]);
 
-            activeChannel = resolvedChannel;
+            if (disposed) {
+                return;
+            }
+
             setChannelName(resolvedChannel);
             setStatus(collectorStatus);
             setEvents(recentEvents);
             setDiagnostics(setupDiagnostics);
 
-            EventsOn(resolvedChannel, (event: DumpEvent) => {
+            unsubscribe = EventsOn(resolvedChannel, (event: DumpEvent) => {
                 appendEvent(event);
             });
         };
@@ -76,20 +102,45 @@ function App() {
         void load();
 
         const interval = setInterval(() => {
-            void GetCollectorStatus().then(setStatus);
+            if (disposed) {
+                return;
+            }
+
+            void GetCollectorStatus().then((nextStatus) => {
+                if (!disposed) {
+                    setStatus(nextStatus);
+                }
+            });
         }, 2000);
 
         return () => {
+            disposed = true;
             clearInterval(interval);
-            if (activeChannel !== '') {
-                EventsOff(activeChannel);
+
+            if (unsubscribe !== null) {
+                unsubscribe();
+                unsubscribe = null;
             }
+
+            EventsOffAll();
         };
     }, []);
 
     const clearEvents = () => setEvents([]);
     const refreshDiagnostics = () => {
         void GetSetupDiagnostics().then(setDiagnostics);
+    };
+
+    const enableCLIHook = async () => {
+        setInstallingHook(true);
+        try {
+            const result = await EnableCLIHook();
+            setHookResult(result);
+            const latestDiagnostics = await GetSetupDiagnostics();
+            setDiagnostics(latestDiagnostics);
+        } finally {
+            setInstallingHook(false);
+        }
     };
 
     return (
@@ -110,13 +161,34 @@ function App() {
             <section className="status-grid diagnostics-grid">
                 <div className="diagnostics-header">
                     <strong>Setup diagnostics</strong>
-                    <button className="btn" onClick={refreshDiagnostics}>Refresh</button>
+                    <div className="actions-row">
+                        <button className="btn" onClick={refreshDiagnostics}>Refresh</button>
+                        <button className="btn" onClick={enableCLIHook} disabled={installingHook}>
+                            {installingHook ? 'Enabling...' : 'Enable CLI Hook'}
+                        </button>
+                    </div>
                 </div>
                 <div><strong>Generated:</strong> {diagnostics?.generatedAt || 'n/a'}</div>
                 <div><strong>PHP found:</strong> {diagnostics?.phpFound ? 'yes' : 'no'}</div>
                 <div><strong>PHP version:</strong> {diagnostics?.phpVersion || 'n/a'}</div>
                 <div><strong>Service manager:</strong> {diagnostics?.serviceManager || 'unknown'}</div>
                 {diagnostics?.lastError ? <div><strong>Diagnostics error:</strong> {diagnostics.lastError}</div> : null}
+                {hookResult ? (
+                    <>
+                        <div><strong>Hook status:</strong> {hookResult.success ? 'enabled' : 'failed'}</div>
+                        <div><strong>Hook message:</strong> {hookResult.message || hookResult.error || 'n/a'}</div>
+                        <div><strong>php.ini:</strong> {hookResult.phpIniPath || 'n/a'}</div>
+                        <div><strong>prepend file:</strong> {hookResult.prependPath || 'n/a'}</div>
+                        <div><strong>backup:</strong> {hookResult.backupPath || 'n/a'}</div>
+                        {hookResult.requiresSudo && hookResult.suggestedCmd ? (
+                            <>
+                                <div><strong>Manual sudo command:</strong></div>
+                                <pre className="event-item">{hookResult.suggestedCmd}</pre>
+                            </>
+                        ) : null}
+                    </>
+                ) : null}
+                <div><strong>Note:</strong> CLI hook may require sudo when PHP config is under /etc. Web/FPM support comes next.</div>
             </section>
 
             <section className="events-section">

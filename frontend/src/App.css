@@ -26,6 +26,11 @@
     cursor: pointer;
 }
 
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
 .status-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -41,6 +46,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.actions-row {
+    display: flex;
+    gap: 8px;
 }
 
 .events-section {

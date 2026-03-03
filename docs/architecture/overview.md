@@ -1,6 +1,6 @@
 # Phant Architecture Overview
 
-Date: 2026-03-02
+Date: 2026-03-03
 Status: Current implementation baseline
 
 ## Why this document exists
@@ -84,10 +84,15 @@ This package does not know about React or Wails runtime APIs.
 
 ### `internal/setup`
 
-Responsibility: machine diagnostics (current step).
+Responsibility: setup diagnostics + hook installation.
 
 - runs local environment checks for setup readiness
-- returns diagnostics report for UI/operations
+- writes Phant prepend script in user config space
+- enables CLI hook through conf.d-first strategy
+- applies OS-aware privilege strategy for protected paths
+	- Linux: attempts `pkexec` for privileged write
+	- macOS/Windows: returns manual/admin guidance (no auto-elevation yet)
+- returns diagnostics/install results for UI operations
 
 ### `main` package (`app.go`, `main.go`)
 
@@ -144,6 +149,21 @@ Why:
 - fast initial hydration
 - realtime updates without tight polling loops
 
+### 5) Conf.d-first hook install with OS-aware privileges
+
+Decision:
+
+- prefer writing a dedicated `99-phant.ini` in PHP additional-ini scan dir
+- patch `php.ini` only when no additional-ini scan dir is available
+- on permission failure, follow OS-specific strategy
+
+Why:
+
+- isolates Phant changes from base `php.ini` when possible
+- keeps rollback and inspection simple (single dedicated file)
+- Linux desktop environments can support in-app elevation via `pkexec`
+- preserves safety by returning explicit manual commands when elevation is unavailable
+
 ## Working flow (runtime sequence)
 
 1. Wails starts app.
@@ -162,13 +182,17 @@ Why:
 - runtime event emission to frontend
 - live event log UI
 - setup diagnostics backend + UI panel
+- CLI hook installer with OS-aware privilege strategy (Linux `pkexec` + manual fallback)
+- frontend listener lifecycle hardening and duplicate-event protection for runtime stream
+- prepend hook stability fix so `dd()` emits a single event (no double emit)
+- verified hook rewrite path (`Enable CLI Hook`) updates user prepend script in config dir
 
 ## Remaining work (next stage)
 
 Primary next milestones:
 
-1. Safe setup mutator flow (preview changes, apply, rollback history)
-2. PHP prepend/hook installer and verification checks
+1. Valet Linux / FPM verification path (service restart + effective ini validation + end-to-end capture checks)
+2. macOS/Windows privileged automation for hook install
 3. Dump transport fallback mode (Symfony dump server adapter)
 4. Persistence and retention controls
 5. Richer UI filters/grouping and better diagnostics UX
@@ -179,5 +203,6 @@ Primary next milestones:
 - Dump domain: [internal/dump/types.go](../../internal/dump/types.go), [internal/dump/decoder.go](../../internal/dump/decoder.go)
 - Collector: [internal/collector/server.go](../../internal/collector/server.go), [internal/collector/buffer.go](../../internal/collector/buffer.go), [internal/collector/path.go](../../internal/collector/path.go)
 - Setup diagnostics: [internal/setup/diagnostics.go](../../internal/setup/diagnostics.go)
+- Setup hook installer: [internal/setup/hook_installer.go](../../internal/setup/hook_installer.go)
 - Frontend live UI: [frontend/src/App.tsx](../../frontend/src/App.tsx)
 - Schema spec: [docs/specs/dump-event-schema.md](../specs/dump-event-schema.md)

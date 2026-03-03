@@ -23,3 +23,9 @@ To build a redistributable, production mode package, use `wails build`.
 - Architecture overview: [docs/architecture/overview.md](docs/architecture/overview.md)
 - Dump schema contract: [docs/specs/dump-event-schema.md](docs/specs/dump-event-schema.md)
 - Implementation plan (history): [docs/plans/2026-02-28-phant-dump-capture-implementation-plan.md](docs/plans/2026-02-28-phant-dump-capture-implementation-plan.md)
+
+## Current Status (2026-03-03)
+
+- CLI dump capture is stable for `dump()` and `dd()` with one event per call.
+- Hook installer rewrites user prepend script at `~/.config/phant/php/phant_prepend.php` and configures CLI via `99-phant.ini` when available.
+- Linux priority is now expanding from CLI-only verification to Valet Linux / FPM service boundary verification.

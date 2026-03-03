@@ -119,8 +119,21 @@ func (a *App) GetSetupDiagnostics() setup.Diagnostics {
 	return setup.CollectDiagnostics(context.Background())
 }
 
+func (a *App) EnableCLIHook() setup.HookInstallResult {
+	socketPath := collector.DefaultSocketPath()
+	if a.collectorStatus.SocketPath != "" {
+		socketPath = a.collectorStatus.SocketPath
+	}
+
+	return setup.InstallCLIHook(context.Background(), socketPath)
+}
+
 func (a *App) startCollectorEventBridge() {
 	if a.collector == nil {
+		return
+	}
+
+	if a.collectorDone != nil {
 		return
 	}
 
@@ -155,4 +168,5 @@ func (a *App) stopCollectorEventBridge() {
 	a.collector.Unsubscribe(a.collectorSubID)
 	a.collectorWG.Wait()
 	a.collectorDone = nil
+	a.collectorSubID = 0
 }
