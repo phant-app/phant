@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { BaseLayout } from './components/layout/BaseLayout';
 import { EventsOffAll, EventsOn } from '../wailsjs/runtime/runtime';
 import {
     ApplyValetLinuxRemediation,
@@ -114,7 +115,7 @@ const navGroups = [
     {
         title: 'Product',
         items: [
-            { to: '/php-versions', label: 'PHP Versions' },
+            { to: '/php-versions', label: 'PHP' },
             { to: '/sites', label: 'Sites' },
             { to: '/valet-setups', label: 'Valet Setups' },
         ],
@@ -122,12 +123,20 @@ const navGroups = [
     {
         title: 'Tools',
         items: [
-            { to: '/dumps', label: 'Live Dumps' },
+            { to: '/dumps', label: 'Dumps' },
             { to: '/setup', label: 'PHP Setup' },
             { to: '/valet', label: 'Valet Linux' },
         ],
     },
 ];
+
+import { ThemeProvider } from './components/theme-provider';
+import { PhpManagerPage } from './pages/PhpManagerPage';
+import { ValetSitesPage } from './pages/ValetSitesPage';
+import { ServicesPage } from './pages/ServicesPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 function PlaceholderPage({
     title,
@@ -155,16 +164,16 @@ function PlaceholderPage({
 
 function ValueRow({ label, value }: { label: string; value: string }) {
     return (
-        <div className="flex items-start justify-between gap-4 rounded-md border border-slate-800 bg-slate-900/40 px-3 py-2">
-            <span className="text-slate-400">{label}</span>
-            <span className="text-right text-slate-100">{value}</span>
+        <div className="flex items-start justify-between gap-4 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="text-right font-medium text-foreground">{value}</span>
         </div>
     );
 }
 
 function JsonBox({ value }: { value: unknown }) {
     return (
-        <pre className="overflow-x-auto rounded-md border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200">
+        <pre className="overflow-x-auto rounded-md border border-border bg-muted/50 p-3 text-xs text-muted-foreground font-mono">
             {JSON.stringify(value, null, 2)}
         </pre>
     );
@@ -172,13 +181,15 @@ function JsonBox({ value }: { value: unknown }) {
 
 function PageCard({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
     return (
-        <section className="space-y-4 rounded-lg border border-slate-800 bg-slate-900/50 p-4">
-            <div className="flex items-center justify-between gap-3">
-                <h2 className="text-base font-semibold text-slate-100">{title}</h2>
-                {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-            </div>
-            {children}
-        </section>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-base font-semibold">{title}</CardTitle>
+                {actions && <div className="flex items-center gap-2">{actions}</div>}
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+                {children}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -192,14 +203,15 @@ function ActionButton({
     children: ReactNode;
 }) {
     return (
-        <button
+        <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={onClick}
             disabled={disabled}
-            className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
             {children}
-        </button>
+        </Button>
     );
 }
 
@@ -228,7 +240,14 @@ function DumpsPage({
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Live Dumps</h1>
+                <p className="text-muted-foreground mt-2">
+                    Monitor dump() and dd() calls from your Laravel application in real-time.
+                </p>
+            </div>
+            
             <PageCard
                 title="Runtime"
                 actions={<ActionButton onClick={onClear}>Clear Events</ActionButton>}
@@ -242,7 +261,7 @@ function DumpsPage({
                 </div>
             </PageCard>
 
-            <PageCard title={`Live dumps (${events.length})`}>
+            <PageCard title={`Dumps (${events.length})`}>
                 {events.length === 0 ? (
                     <p className="text-sm text-slate-400">No dumps yet. Trigger `dump()` or `dd()` in Laravel.</p>
                 ) : (
@@ -282,7 +301,14 @@ function SetupPage({
     onEnable: () => void;
 }) {
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">CLI Diagnostics</h1>
+                <p className="text-muted-foreground mt-2">
+                    Verify that your PHP CLI setup includes the correct prepended hooks to capture dumps.
+                </p>
+            </div>
+
             <PageCard
                 title="CLI hook"
                 actions={
@@ -339,7 +365,14 @@ function ValetPage({
     valetRemediationResult: ValetLinuxRemediationResult | null;
 }) {
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Valet Linux</h1>
+                <p className="text-muted-foreground mt-2">
+                    Diagnose and manage your Valet configuration safely. Review FPM hook targets and apply remediation.
+                </p>
+            </div>
+
             <PageCard
                 title="Verification"
                 actions={
@@ -557,127 +590,51 @@ function App() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-            <div className="mx-auto flex min-h-screen max-w-7xl">
-                <aside className="w-64 border-r border-slate-800 bg-slate-900/40 p-4">
-                    <div className="mb-6">
-                        <h1 className="text-xl font-semibold">Phant</h1>
-                        <p className="text-sm text-slate-400">Developer-first PHP diagnostics</p>
-                    </div>
-
-                    <nav className="space-y-5">
-                        {navGroups.map((group) => (
-                            <div key={group.title} className="space-y-2">
-                                <p className="px-2 text-xs uppercase tracking-wide text-slate-500">{group.title}</p>
-                                <div className="space-y-2">
-                                    {group.items.map((item) => (
-                                        <NavLink
-                                            key={item.to}
-                                            to={item.to}
-                                            className={({ isActive }) =>
-                                                [
-                                                    'block rounded-md px-3 py-2 text-sm transition',
-                                                    isActive
-                                                        ? 'bg-slate-200 text-slate-900'
-                                                        : 'bg-slate-800/40 text-slate-300 hover:bg-slate-800 hover:text-slate-100',
-                                                ].join(' ')
-                                            }
-                                        >
-                                            {item.label}
-                                        </NavLink>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </nav>
-                </aside>
-
-                <main className="flex-1 space-y-4 overflow-y-auto p-6">
-                    <header className="space-y-1">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">MVP Workspace</p>
-                        <h2 className="text-lg font-semibold">Laravel / PHP runtime tools</h2>
-                    </header>
-
-                    <Routes>
-                        <Route path="/" element={<Navigate to="/dumps" replace />} />
-                        <Route
-                            path="/php-versions"
-                            element={
-                                <PlaceholderPage
-                                    title="PHP Versions"
-                                    subtitle="Install, switch, and configure global/local PHP runtimes for Laravel projects."
-                                    nextSteps={[
-                                        'Detect installed versions from system and Valet.',
-                                        'Mark one version as active with a safe switch action.',
-                                        'Show active CLI/FPM alignment diagnostics.',
-                                    ]}
-                                />
-                            }
+        <ThemeProvider defaultTheme="dark" storageKey="phant-ui-theme">
+            <BaseLayout>
+                <Routes>
+                    <Route path="/" element={<Navigate to="/dumps" replace />} />
+                    <Route
+                        path="/php"
+                    element={
+                        <div className="space-y-8">
+                            <PhpManagerPage />
+                            <SetupPage
+                                diagnostics={diagnostics}
+                                hookResult={hookResult}
+                                installingHook={installingHook}
+                                onRefresh={refreshDiagnostics}
+                                onEnable={enableCLIHook}
+                            />
+                        </div>
+                    }
+                />
+                <Route path="/sites" element={<ValetSitesPage />} />
+                <Route
+                    path="/valet"
+                    element={
+                        <ValetPage
+                            valetVerification={valetVerification}
+                            refreshingValet={refreshingValet}
+                            onRefresh={refreshValetVerification}
+                            confirmValetRemediation={confirmValetRemediation}
+                            onConfirm={setConfirmValetRemediation}
+                            applyingValetRemediation={applyingValetRemediation}
+                            onApply={applyValetRemediation}
+                            valetRemediationResult={valetRemediationResult}
                         />
-                        <Route
-                            path="/sites"
-                            element={
-                                <PlaceholderPage
-                                    title="Sites"
-                                    subtitle="List your Valet sites and quickly jump into diagnostics per project."
-                                    nextSteps={[
-                                        'Read parked and linked sites from Valet config.',
-                                        'Show project path, PHP version, and health status.',
-                                        'Open site logs and live dumps filtered by project.',
-                                    ]}
-                                />
-                            }
-                        />
-                        <Route
-                            path="/valet-setups"
-                            element={
-                                <PlaceholderPage
-                                    title="Valet Setups"
-                                    subtitle="Configure and verify Valet runtime details with a guided developer flow."
-                                    nextSteps={[
-                                        'Detect Valet driver, paths, and service manager state.',
-                                        'Run an end-to-end check for DNS, TLS, and PHP-FPM.',
-                                        'Offer one-click remediation with explicit confirmations.',
-                                    ]}
-                                />
-                            }
-                        />
-                        <Route
-                            path="/dumps"
-                            element={<DumpsPage channelName={channelName} status={status} events={events} onClear={clearEvents} />}
-                        />
-                        <Route
-                            path="/setup"
-                            element={
-                                <SetupPage
-                                    diagnostics={diagnostics}
-                                    hookResult={hookResult}
-                                    installingHook={installingHook}
-                                    onRefresh={refreshDiagnostics}
-                                    onEnable={enableCLIHook}
-                                />
-                            }
-                        />
-                        <Route
-                            path="/valet"
-                            element={
-                                <ValetPage
-                                    valetVerification={valetVerification}
-                                    refreshingValet={refreshingValet}
-                                    onRefresh={refreshValetVerification}
-                                    confirmValetRemediation={confirmValetRemediation}
-                                    onConfirm={setConfirmValetRemediation}
-                                    applyingValetRemediation={applyingValetRemediation}
-                                    onApply={applyValetRemediation}
-                                    valetRemediationResult={valetRemediationResult}
-                                />
-                            }
-                        />
-                        <Route path="*" element={<Navigate to="/dumps" replace />} />
-                    </Routes>
-                </main>
-            </div>
-        </div>
+                    }
+                />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route
+                    path="/dumps"
+                    element={<DumpsPage channelName={channelName} status={status} events={events} onClear={clearEvents} />}
+                />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/dumps" replace />} />
+            </Routes>
+        </BaseLayout>
+        </ThemeProvider>
     );
 }
 
