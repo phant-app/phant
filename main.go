@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"phant/internal/services"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -10,21 +11,23 @@ import (
 var assets embed.FS
 
 func main() {
-	service := NewApp()
+	appServices := services.NewAppServices()
 
 	app := application.New(application.Options{
-		Name: "phant",
+		Name: "Phant",
 		Services: []application.Service{
-			application.NewService(service),
+			application.NewService(appServices.Lifecycle),
+			application.NewService(appServices.Dump),
+			application.NewService(appServices.Setup),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
 	})
-	service.setApplication(app)
+	services.AttachApplication(appServices.Lifecycle, app)
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:            "phant",
+		Title:            "Phant",
 		Width:            1024,
 		Height:           768,
 		BackgroundColour: application.NewRGBA(27, 38, 54, 255),

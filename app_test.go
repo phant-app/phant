@@ -1,13 +1,14 @@
 package main
 
 import (
+	"phant/internal/services"
 	"strings"
 	"testing"
 )
 
 func TestDecodeDumpEventNDJSONLine_EmptyLineIsIgnored(t *testing.T) {
-	app := NewApp()
-	event, err := app.DecodeDumpEventNDJSONLine("   \n")
+	dumpService := services.NewAppServices().Dump
+	event, err := dumpService.DecodeDumpEventNDJSONLine("   \n")
 	if err != nil {
 		t.Fatalf("expected no error for empty line, got %v", err)
 	}
@@ -17,10 +18,10 @@ func TestDecodeDumpEventNDJSONLine_EmptyLineIsIgnored(t *testing.T) {
 }
 
 func TestDecodeDumpEventNDJSONLine_ValidHTTPEvent(t *testing.T) {
-	app := NewApp()
+	dumpService := services.NewAppServices().Dump
 	line := `{"schemaVersion":1,"id":"01JNFKEC8Q4Y8S97R2M5W12Q9H","timestamp":"2026-02-28T11:20:31.331Z","sourceType":"http","projectRoot":"/home/ronald/code/example-app","phpSapi":"fpm-fcgi","requestId":"f2a1a3d2-2087-4dc4-9fc4-3f8e75ae3202","http":{"method":"GET","scheme":"https","host":"example.test","path":"/users/42"},"isDd":false,"payloadFormat":"json","payload":{"user":{"id":42}},"trace":[],"host":{"hostname":"ronald-linux","pid":48211}}`
 
-	event, err := app.DecodeDumpEventNDJSONLine(line)
+	event, err := dumpService.DecodeDumpEventNDJSONLine(line)
 	if err != nil {
 		t.Fatalf("expected valid event, got error %v", err)
 	}
@@ -30,10 +31,10 @@ func TestDecodeDumpEventNDJSONLine_ValidHTTPEvent(t *testing.T) {
 }
 
 func TestDecodeDumpEventNDJSONLine_ValidCLIEventWithNullRequestID(t *testing.T) {
-	app := NewApp()
+	dumpService := services.NewAppServices().Dump
 	line := `{"schemaVersion":1,"id":"01JNFKEPA3A4CNV3K2E12YVYTG","timestamp":"2026-02-28T11:21:18.011Z","sourceType":"cli","projectRoot":"/home/ronald/code/example-app","phpSapi":"cli","requestId":null,"command":{"name":"artisan","args":["queue:work"]},"isDd":false,"payloadFormat":"json","payload":{"ok":true},"trace":[],"host":{"hostname":"ronald-linux","pid":49302}}`
 
-	event, err := app.DecodeDumpEventNDJSONLine(line)
+	event, err := dumpService.DecodeDumpEventNDJSONLine(line)
 	if err != nil {
 		t.Fatalf("expected valid event, got error %v", err)
 	}
@@ -43,7 +44,7 @@ func TestDecodeDumpEventNDJSONLine_ValidCLIEventWithNullRequestID(t *testing.T) 
 }
 
 func TestDecodeDumpEventNDJSONLine_InvalidCases(t *testing.T) {
-	app := NewApp()
+	dumpService := services.NewAppServices().Dump
 	tests := []struct {
 		name    string
 		line    string
@@ -57,7 +58,7 @@ func TestDecodeDumpEventNDJSONLine_InvalidCases(t *testing.T) {
 		{
 			name:    "unsupported schema version",
 			line:    `{"schemaVersion":2,"id":"1","timestamp":"2026-02-28T11:20:31.331Z","sourceType":"http","projectRoot":"/x","phpSapi":"fpm-fcgi","requestId":"a","http":{"method":"GET","scheme":"https","host":"example.test","path":"/"},"isDd":false,"payloadFormat":"json","payload":{"k":"v"},"trace":[],"host":{"hostname":"h","pid":1}}`,
-			wantErr: ErrUnsupportedSchemaVersion.Error(),
+			wantErr: services.ErrUnsupportedSchemaVersion.Error(),
 		},
 		{
 			name:    "invalid sourceType",
@@ -103,7 +104,7 @@ func TestDecodeDumpEventNDJSONLine_InvalidCases(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			event, err := app.DecodeDumpEventNDJSONLine(test.line)
+			event, err := dumpService.DecodeDumpEventNDJSONLine(test.line)
 			if err == nil {
 				t.Fatalf("expected error, got nil and event %#v", event)
 			}

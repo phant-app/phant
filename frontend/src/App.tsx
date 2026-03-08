@@ -3,14 +3,16 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BaseLayout } from './components/layout/BaseLayout';
 import { Events } from '@wailsio/runtime';
 import {
-    ApplyValetLinuxRemediation,
     DumpEventChannelName,
     GetCollectorStatus,
-    EnableCLIHook,
     GetRecentEvents,
+} from '../bindings/phant/internal/services/dumpservice';
+import {
+    ApplyValetLinuxRemediation,
+    EnableCLIHook,
     GetSetupDiagnostics,
     GetValetLinuxVerification,
-} from '../bindings/phant/app';
+} from '../bindings/phant/internal/services/setupservice';
 
 import type {
     CollectorStatus,

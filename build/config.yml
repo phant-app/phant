@@ -1,0 +1,46 @@
+# Wails v3 project configuration
+version: '3'
+
+info:
+  companyName: "Phant"
+  productName: "phant"
+  productIdentifier: "app.rondevz.phant"
+  description: "Desktop companion for PHP dump capture and diagnostics"
+  copyright: "(c) 2026, Phant"
+  comments: "No comments"
+  version: "0.0.1"
+
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend
+      - bin
+    file:
+      - .DS_Store
+      - .gitignore
+      - .gitkeep
+    watched_extension:
+      - "*.go"
+      - "*.js"
+      - "*.ts"
+    git_ignore: true
+  executes:
+    - cmd: npm install --prefix frontend
+      type: once
+    - cmd: npm run dev --prefix frontend -- --port 9245 --strictPort
+      type: background
+    - cmd: go build -o ./build/bin/phant .
+      type: blocking
+    - cmd: env -u LD_LIBRARY_PATH ./build/bin/phant
+      type: primary
+
+fileAssociations: []
+
+other:
+  - name: migration
+    value: "v2-to-v3-alpha"

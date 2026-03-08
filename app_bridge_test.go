@@ -1,35 +1,37 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"phant/internal/collector"
+	"phant/internal/services"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func TestGetRecentEvents_ReturnsEmptyWhenCollectorMissing(t *testing.T) {
-	app := NewApp()
-	got := app.GetRecentEvents(10)
+	dumpService := services.NewAppServices().Dump
+	got := dumpService.GetRecentEvents(10)
 	if len(got) != 0 {
-		t.Fatalf("app.GetRecentEvents(10) len = %d, want %d", len(got), 0)
+		t.Fatalf("dumpService.GetRecentEvents(10) len = %d, want %d", len(got), 0)
 	}
 }
 
 func TestGetRecentEvents_ReturnsLatestN(t *testing.T) {
 	socketPath := filepath.Join(t.TempDir(), "collector.sock")
-	server := collector.NewServer(socketPath, 8)
-	if err := server.Start(); err != nil {
-		t.Fatalf("server.Start() error = %v", err)
+	appServices := services.NewAppServicesWithOptions(services.Options{SocketPath: socketPath})
+	if err := appServices.Lifecycle.ServiceStartup(context.Background(), application.ServiceOptions{}); err != nil {
+		t.Fatalf("Lifecycle.ServiceStartup() error = %v", err)
 	}
 	defer func() {
-		_ = server.Stop()
+		_ = appServices.Lifecycle.ServiceShutdown()
 	}()
 
-	app := NewApp()
-	app.collector = server
+	dumpService := appServices.Dump
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
@@ -45,18 +47,18 @@ func TestGetRecentEvents_ReturnsLatestN(t *testing.T) {
 
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		if len(app.GetRecentEvents(0)) >= 3 {
+		if len(dumpService.GetRecentEvents(0)) >= 3 {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	got := app.GetRecentEvents(2)
+	got := dumpService.GetRecentEvents(2)
 	if len(got) != 2 {
-		t.Fatalf("app.GetRecentEvents(2) len = %d, want %d", len(got), 2)
+		t.Fatalf("dumpService.GetRecentEvents(2) len = %d, want %d", len(got), 2)
 	}
 	if got[0].ID != "evt-2" || got[1].ID != "evt-3" {
-		t.Fatalf("app.GetRecentEvents(2) IDs = [%s %s], want [evt-2 evt-3]", got[0].ID, got[1].ID)
+		t.Fatalf("dumpService.GetRecentEvents(2) IDs = [%s %s], want [evt-2 evt-3]", got[0].ID, got[1].ID)
 	}
 }
 
