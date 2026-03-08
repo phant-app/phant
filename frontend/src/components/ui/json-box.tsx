@@ -28,7 +28,7 @@ export function JsonBox({ value }: { value: unknown }) {
                     type="button"
                     variant="outline" 
                     size="sm" 
-                    className="absolute top-2 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm shadow-sm"
+                    className="absolute top-2 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm"
                     onClick={() => setExpanded(!expanded)}
                 >
                     {expanded ? 'Collapse' : 'Expand full JSON'}
