@@ -9,7 +9,7 @@ import (
 	"phant/internal/dump"
 	"phant/internal/setup"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 const DumpEventSchemaVersion = dump.SchemaVersion
@@ -19,7 +19,7 @@ var ErrUnsupportedSchemaVersion = dump.ErrUnsupportedSchemaVersion
 
 // App struct
 type App struct {
-	ctx             context.Context
+	app             *application.App
 	collector       *collector.Server
 	collectorStatus CollectorStatus
 	collectorSubID  int
@@ -39,10 +39,15 @@ func NewApp() *App {
 	return &App{}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
+func (a *App) setApplication(app *application.App) {
+	a.app = app
+}
+
+func (a *App) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
+	return a.startupCollector()
+}
+
+func (a *App) startupCollector() error {
 
 	socketPath := collector.DefaultSocketPath()
 	server := collector.NewServer(socketPath, collector.DefaultBufferSize)
@@ -54,15 +59,22 @@ func (a *App) startup(ctx context.Context) {
 
 	if err := server.Start(); err != nil {
 		a.collectorStatus.LastError = err.Error()
-		return
+		return err
 	}
 
 	a.collector = server
 	a.collectorStatus.Running = true
 	a.startCollectorEventBridge()
+
+	return nil
 }
 
-func (a *App) shutdown(ctx context.Context) {
+func (a *App) ServiceShutdown() error {
+	a.shutdownCollector()
+	return nil
+}
+
+func (a *App) shutdownCollector() {
 	if a.collector == nil {
 		return
 	}
@@ -161,7 +173,9 @@ func (a *App) startCollectorEventBridge() {
 				if !ok {
 					return
 				}
-				runtime.EventsEmit(a.ctx, DumpEventRuntimeChannel, event)
+				if a.app != nil {
+					a.app.Event.Emit(DumpEventRuntimeChannel, event)
+				}
 			}
 		}
 	}()
