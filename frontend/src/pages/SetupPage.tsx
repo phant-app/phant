@@ -10,21 +10,25 @@ export function SetupPage({
     installingHook,
     onRefresh,
     onEnable,
+    embedded = false,
 }: {
     diagnostics: SetupDiagnostics | null;
     hookResult: HookInstallResult | null;
     installingHook: boolean;
     onRefresh: () => void;
     onEnable: () => void;
+    embedded?: boolean;
 }) {
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">CLI Diagnostics</h1>
-                <p className="text-muted-foreground mt-2">
-                    Verify that your PHP CLI setup includes the correct prepended hooks to capture dumps.
-                </p>
-            </div>
+            {!embedded ? (
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">CLI Diagnostics</h1>
+                    <p className="text-muted-foreground mt-2">
+                        Verify that your PHP CLI setup includes the correct prepended hooks to capture dumps.
+                    </p>
+                </div>
+            ) : null}
 
             <PageCard
                 title="CLI hook"

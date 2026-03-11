@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "sonner";
 
 const mockVersions = [
     { version: '8.3', installed: true, active: true },
@@ -11,6 +13,27 @@ const mockVersions = [
 ];
 
 export function PhpManagerPage() {
+    const [versions, setVersions] = useState(mockVersions);
+
+    const installVersion = (version: string) => {
+        setVersions((previous) => previous.map((item) => (
+            item.version === version
+                ? { ...item, installed: true }
+                : item
+        )));
+        toast.success(`PHP ${version} marked as installed (mock)`);
+    };
+
+    const switchVersion = (version: string) => {
+        setVersions((previous) => previous.map((item) => ({
+            ...item,
+            active: item.version === version ? item.installed : false,
+        })));
+        toast.success(`Active PHP switched to ${version} (mock)`);
+    };
+
+    const activeVersion = versions.find((item) => item.active)?.version ?? 'none';
+
     return (
         <div className="space-y-6">
             <div>
@@ -18,6 +41,7 @@ export function PhpManagerPage() {
                 <p className="text-muted-foreground mt-2">
                     Manage installed PHP versions. Switch the active globally linked PHP version used by Valet.
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">Active version: PHP {activeVersion}</p>
             </div>
 
             <Card>
@@ -35,7 +59,7 @@ export function PhpManagerPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {mockVersions.map((v) => (
+                            {versions.map((v) => (
                                 <TableRow key={v.version}>
                                     <TableCell className="font-medium">PHP {v.version}</TableCell>
                                     <TableCell>
@@ -52,11 +76,11 @@ export function PhpManagerPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {!v.installed ? (
-                                            <Button variant="outline" size="sm">Install</Button>
+                                            <Button variant="outline" size="sm" onClick={() => installVersion(v.version)}>Install</Button>
                                         ) : v.active ? (
                                             <Button variant="ghost" size="sm" disabled>Current</Button>
                                         ) : (
-                                            <Button variant="secondary" size="sm">Switch</Button>
+                                            <Button variant="secondary" size="sm" onClick={() => switchVersion(v.version)}>Switch</Button>
                                         )}
                                     </TableCell>
                                 </TableRow>

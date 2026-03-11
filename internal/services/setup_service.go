@@ -22,6 +22,10 @@ func (s *SetupService) GetValetLinuxVerification() setup.ValetLinuxVerification 
 	return setup.VerifyValetLinux(context.Background())
 }
 
+func (s *SetupService) GetValetSites() setup.ValetSitesResult {
+	return setup.DiscoverValetSites(context.Background())
+}
+
 func (s *SetupService) ApplyValetLinuxRemediation(confirm bool) setup.ValetLinuxRemediationResult {
 	return setup.ApplyValetLinuxRemediation(context.Background(), confirm)
 }

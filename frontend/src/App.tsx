@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BaseLayout } from './components/layout/BaseLayout';
 import { Events } from '@wailsio/runtime';
 import {
@@ -11,6 +11,7 @@ import {
     ApplyValetLinuxRemediation,
     EnableCLIHook,
     GetSetupDiagnostics,
+    GetValetSites,
     GetValetLinuxVerification,
 } from '../bindings/phant/internal/services/setupservice';
 
@@ -19,6 +20,7 @@ import type {
     DumpEvent,
     HookInstallResult,
     SetupDiagnostics,
+    ValetSitesResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
 } from './types';
@@ -31,8 +33,18 @@ import { SettingsPage } from './pages/SettingsPage';
 import { DumpsPage } from './pages/DumpsPage';
 import { SetupPage } from './pages/SetupPage';
 import { ValetPage } from './pages/ValetPage';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from './components/ui/dialog';
+import { Button } from './components/ui/button';
 
 const MAX_RENDERED_EVENTS = 500;
+const ONBOARDING_SEEN_KEY = 'phant:onboarding:v1:seen';
 
 const isSameCollectorStatus = (
     previous: CollectorStatus | null,
@@ -52,25 +64,39 @@ const isSameCollectorStatus = (
 
 function App() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [events, setEvents] = useState<DumpEvent[]>([]);
     const [channelName, setChannelName] = useState<string>('');
     const [status, setStatus] = useState<CollectorStatus | null>(null);
     const [diagnostics, setDiagnostics] = useState<SetupDiagnostics | null>(null);
     const [valetVerification, setValetVerification] = useState<ValetLinuxVerification | null>(null);
+    const [valetSites, setValetSites] = useState<ValetSitesResult | null>(null);
+    const [loadingValetSites, setLoadingValetSites] = useState(false);
     const [hookResult, setHookResult] = useState<HookInstallResult | null>(null);
     const [installingHook, setInstallingHook] = useState(false);
     const [refreshingValet, setRefreshingValet] = useState(false);
     const [valetRemediationResult, setValetRemediationResult] = useState<ValetLinuxRemediationResult | null>(null);
     const [applyingValetRemediation, setApplyingValetRemediation] = useState(false);
     const [confirmValetRemediation, setConfirmValetRemediation] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+
+    useEffect(() => {
+        const seenOnboarding = window.localStorage.getItem(ONBOARDING_SEEN_KEY) === 'true';
+        if (!seenOnboarding) {
+            setShowOnboarding(true);
+        }
+    }, []);
 
     useEffect(() => {
         let disposed = false;
 
         const load = async () => {
-            const [setupDiagnostics, valetStatus] = await Promise.all([
+            setLoadingValetSites(true);
+
+            const [setupDiagnostics, valetStatus, sites] = await Promise.all([
                 GetSetupDiagnostics(),
                 GetValetLinuxVerification(),
+                GetValetSites(),
             ]);
 
             if (disposed) {
@@ -79,6 +105,8 @@ function App() {
 
             setDiagnostics(setupDiagnostics);
             setValetVerification(valetStatus);
+            setValetSites(sites);
+            setLoadingValetSites(false);
         };
 
         void load();
@@ -170,6 +198,16 @@ function App() {
         }
     };
 
+    const refreshValetSites = async () => {
+        setLoadingValetSites(true);
+        try {
+            const result = await GetValetSites();
+            setValetSites(result);
+        } finally {
+            setLoadingValetSites(false);
+        }
+    };
+
     const enableCLIHook = async () => {
         setInstallingHook(true);
         try {
@@ -198,6 +236,16 @@ function App() {
         }
     };
 
+    const completeOnboarding = () => {
+        window.localStorage.setItem(ONBOARDING_SEEN_KEY, 'true');
+        setShowOnboarding(false);
+    };
+
+    const startSetupFromOnboarding = () => {
+        completeOnboarding();
+        navigate('/settings');
+    };
+
     return (
         <ThemeProvider defaultTheme="dark" storageKey="phant-ui-theme">
             <BaseLayout>
@@ -218,7 +266,16 @@ function App() {
                         </div>
                     }
                 />
-                <Route path="/sites" element={<ValetSitesPage />} />
+                <Route
+                    path="/sites"
+                    element={(
+                        <ValetSitesPage
+                            valetSites={valetSites}
+                            loadingValetSites={loadingValetSites}
+                            onRefresh={refreshValetSites}
+                        />
+                    )}
+                />
                 <Route
                     path="/valet"
                     element={
@@ -239,10 +296,47 @@ function App() {
                     path="/dumps"
                     element={<DumpsPage channelName={channelName} status={status} events={events} onClear={clearEvents} />}
                 />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route
+                    path="/settings"
+                    element={(
+                        <SettingsPage
+                            diagnostics={diagnostics}
+                            hookResult={hookResult}
+                            installingHook={installingHook}
+                            onRefreshDiagnostics={refreshDiagnostics}
+                            onEnableCLIHook={enableCLIHook}
+                            valetVerification={valetVerification}
+                            refreshingValet={refreshingValet}
+                            onRefreshValet={refreshValetVerification}
+                            confirmValetRemediation={confirmValetRemediation}
+                            onConfirmValetRemediation={setConfirmValetRemediation}
+                            applyingValetRemediation={applyingValetRemediation}
+                            onApplyValetRemediation={applyValetRemediation}
+                            valetRemediationResult={valetRemediationResult}
+                        />
+                    )}
+                />
                 <Route path="*" element={<Navigate to="/dumps" replace />} />
             </Routes>
         </BaseLayout>
+            <Dialog open={showOnboarding} onOpenChange={(open) => {
+                if (!open) {
+                    completeOnboarding();
+                }
+            }}>
+                <DialogContent showCloseButton={false}>
+                    <DialogHeader>
+                        <DialogTitle>Welcome to Phant</DialogTitle>
+                        <DialogDescription>
+                            Let&apos;s get your environment ready. Start with Settings to review Diagnostics and Valet.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={completeOnboarding}>Skip</Button>
+                        <Button onClick={startSetupFromOnboarding}>Open Settings</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </ThemeProvider>
     );
 }

@@ -7,5 +7,7 @@ export {
     HookInstallResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
-    ValetRemediationTarget
+    ValetRemediationTarget,
+    ValetSite,
+    ValetSitesResult
 } from "./models.js";

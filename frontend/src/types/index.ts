@@ -94,3 +94,22 @@ export type ValetLinuxRemediationResult = {
     message: string;
     error: string;
 };
+
+export type ValetSite = {
+    name: string;
+    path: string;
+    url: string;
+    isSecure: boolean;
+    phpVersion?: string;
+};
+
+export type ValetSitesResult = {
+    generatedAt: string;
+    supported: boolean;
+    os: string;
+    source: string;
+    sites: ValetSite[];
+    parkedDirectories: string[];
+    warnings: string[];
+    error: string;
+};
