@@ -12,7 +12,7 @@ import {
     SetPHPExtensionState,
     SwitchPHPVersion,
     UpdatePHPIniSettings,
-} from "../../bindings/phant/internal/services/setupservice";
+} from "../../bindings/phant/internal/services/phpservice";
 import type { PHPIniSettings, PHPManagerSnapshot } from "@/types";
 
 const initialSettings: PHPIniSettings = {

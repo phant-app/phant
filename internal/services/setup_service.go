@@ -29,23 +29,3 @@ func (s *SetupService) GetValetSites() setup.ValetSitesResult {
 func (s *SetupService) ApplyValetLinuxRemediation(confirm bool) setup.ValetLinuxRemediationResult {
 	return setup.ApplyValetLinuxRemediation(context.Background(), confirm)
 }
-
-func (s *SetupService) GetPHPManagerSnapshot() setup.PHPManagerSnapshot {
-	return setup.GetPHPManagerSnapshot(context.Background())
-}
-
-func (s *SetupService) InstallPHPVersion(version string) setup.PHPActionResult {
-	return setup.InstallPHPVersion(context.Background(), version)
-}
-
-func (s *SetupService) SwitchPHPVersion(version string) setup.PHPActionResult {
-	return setup.SwitchPHPVersion(context.Background(), version)
-}
-
-func (s *SetupService) UpdatePHPIniSettings(request setup.PHPIniSettingsUpdateRequest) setup.PHPActionResult {
-	return setup.UpdatePHPIniSettings(context.Background(), request)
-}
-
-func (s *SetupService) SetPHPExtensionState(request setup.PHPExtensionToggleRequest) setup.PHPActionResult {
-	return setup.SetPHPExtensionState(context.Background(), request)
-}

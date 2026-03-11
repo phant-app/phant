@@ -8,6 +8,7 @@ type AppServices struct {
 	Lifecycle *CollectorLifecycleService
 	Dump      *DumpService
 	Setup     *SetupService
+	PHP       *PHPService
 }
 
 func NewAppServices() *AppServices {
@@ -23,5 +24,6 @@ func NewAppServicesWithOptions(options Options) *AppServices {
 		Lifecycle: &CollectorLifecycleService{runtime: runtime},
 		Dump:      &DumpService{runtime: runtime},
 		Setup:     &SetupService{runtime: runtime},
+		PHP:       NewPHPService(),
 	}
 }

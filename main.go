@@ -19,6 +19,7 @@ func main() {
 			application.NewService(appServices.Lifecycle),
 			application.NewService(appServices.Dump),
 			application.NewService(appServices.Setup),
+			application.NewService(appServices.PHP),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

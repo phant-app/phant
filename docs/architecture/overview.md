@@ -119,7 +119,15 @@ Responsibility: app orchestration and Wails bridge.
 - startup/shutdown lifecycle hooks
 - starts/stops collector
 - bridges collector events to frontend via Wails runtime channel
-- exposes frontend-callable methods (`GetRecentEvents`, `GetCollectorStatus`, `GetSetupDiagnostics`)
+- exposes frontend-callable methods through dedicated services (`DumpService`, `SetupService`, `PHPService`)
+
+### `internal/app/phpmanager`
+
+Responsibility: PHP manager use-cases at application layer.
+
+- orchestrates snapshot/action flows for PHP versions, settings, and extensions
+- currently delegates to setup internals while migration is in progress
+- gives a stable seam to migrate Linux/macOS/Windows providers without changing Wails service contracts
 
 ## Architectural decisions and rationale
 
@@ -182,6 +190,19 @@ Why:
 - Linux desktop environments can support in-app elevation via `pkexec`
 - preserves safety by returning explicit manual commands when elevation is unavailable
 
+### 6) Service boundaries by capability
+
+Decision:
+
+- `SetupService` is environment/setup focused (diagnostics, CLI hook, Valet verification/remediation)
+- `PHPService` is PHP manager focused (versions, switch, settings, extensions)
+
+Why:
+
+- avoids an all-purpose setup bag
+- keeps frontend bindings grouped by domain intent
+- reduces coupling as PHP manager evolves independently
+
 ## Working flow (runtime sequence)
 
 1. Wails starts app.
@@ -207,6 +228,7 @@ Why:
 - Valet Linux verification report (CLI conf.d + discovered FPM services + recommendations)
 - Valet Linux guarded remediation action (writes FPM hook ini + restart attempts with sudo fallback commands)
 - Linux-first PHP manager backend and frontend wiring (versions + settings + extension toggles)
+- Wails service split: dedicated `PHPService` plus app-layer `internal/app/phpmanager` seam
 
 ## Remaining work (next stage)
 
@@ -221,12 +243,14 @@ Primary next milestones:
 ## File map (quick navigation)
 
 - App orchestration: [app.go](../../app.go), [main.go](../../main.go)
+- Wails services: [internal/services/dump_service.go](../../internal/services/dump_service.go), [internal/services/setup_service.go](../../internal/services/setup_service.go), [internal/services/php_service.go](../../internal/services/php_service.go)
 - Dump domain: [internal/dump/types.go](../../internal/dump/types.go), [internal/dump/decoder.go](../../internal/dump/decoder.go)
 - Collector: [internal/collector/server.go](../../internal/collector/server.go), [internal/collector/buffer.go](../../internal/collector/buffer.go), [internal/collector/path.go](../../internal/collector/path.go)
 - Setup diagnostics: [internal/setup/diagnostics.go](../../internal/setup/diagnostics.go)
 - Setup hook installer: [internal/setup/hook_installer.go](../../internal/setup/hook_installer.go)
 - Valet verifier: [internal/setup/valet_linux.go](../../internal/setup/valet_linux.go)
 - PHP manager: [internal/setup/php_manager.go](../../internal/setup/php_manager.go), [internal/setup/php_manager_linux.go](../../internal/setup/php_manager_linux.go), [internal/setup/php_manager_types.go](../../internal/setup/php_manager_types.go)
+- PHP manager app layer: [internal/app/phpmanager/service.go](../../internal/app/phpmanager/service.go)
 - Frontend live UI: [frontend/src/App.tsx](../../frontend/src/App.tsx)
 - PHP manager UI: [frontend/src/pages/PhpManagerPage.tsx](../../frontend/src/pages/PhpManagerPage.tsx)
 - Schema spec: [docs/specs/dump-event-schema.md](../specs/dump-event-schema.md)

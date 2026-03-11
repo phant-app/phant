@@ -31,6 +31,7 @@ To build a redistributable, production mode package, use `wails3 build`.
 - Valet Linux verification panel now reports FPM service wiring, active/enabled state, and recommended remediation commands.
 - Valet Linux panel includes guarded remediation apply flow (explicit confirmation required) to write FPM `99-phant.ini` and attempt service restarts.
 - PHP Manager route now renders only PHP management content; CLI Diagnostics remains in Settings.
+- Wails service boundaries are now split by capability: `SetupService` for environment/setup concerns and `PHPService` for PHP manager concerns.
 - PHP Manager backend now exposes Linux-first actions to:
 	- discover installed/available PHP versions and active version
 	- install versions via apt-based Linux package commands
