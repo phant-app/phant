@@ -11,6 +11,7 @@ import {
     ApplyValetLinuxRemediation,
     EnableCLIHook,
     GetSetupDiagnostics,
+    GetValetSites,
     GetValetLinuxVerification,
 } from '../bindings/phant/internal/services/setupservice';
 
@@ -19,6 +20,7 @@ import type {
     DumpEvent,
     HookInstallResult,
     SetupDiagnostics,
+    ValetSitesResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
 } from './types';
@@ -57,6 +59,8 @@ function App() {
     const [status, setStatus] = useState<CollectorStatus | null>(null);
     const [diagnostics, setDiagnostics] = useState<SetupDiagnostics | null>(null);
     const [valetVerification, setValetVerification] = useState<ValetLinuxVerification | null>(null);
+    const [valetSites, setValetSites] = useState<ValetSitesResult | null>(null);
+    const [loadingValetSites, setLoadingValetSites] = useState(false);
     const [hookResult, setHookResult] = useState<HookInstallResult | null>(null);
     const [installingHook, setInstallingHook] = useState(false);
     const [refreshingValet, setRefreshingValet] = useState(false);
@@ -68,9 +72,12 @@ function App() {
         let disposed = false;
 
         const load = async () => {
-            const [setupDiagnostics, valetStatus] = await Promise.all([
+            setLoadingValetSites(true);
+
+            const [setupDiagnostics, valetStatus, sites] = await Promise.all([
                 GetSetupDiagnostics(),
                 GetValetLinuxVerification(),
+                GetValetSites(),
             ]);
 
             if (disposed) {
@@ -79,6 +86,8 @@ function App() {
 
             setDiagnostics(setupDiagnostics);
             setValetVerification(valetStatus);
+            setValetSites(sites);
+            setLoadingValetSites(false);
         };
 
         void load();
@@ -170,6 +179,16 @@ function App() {
         }
     };
 
+    const refreshValetSites = async () => {
+        setLoadingValetSites(true);
+        try {
+            const result = await GetValetSites();
+            setValetSites(result);
+        } finally {
+            setLoadingValetSites(false);
+        }
+    };
+
     const enableCLIHook = async () => {
         setInstallingHook(true);
         try {
@@ -218,7 +237,16 @@ function App() {
                         </div>
                     }
                 />
-                <Route path="/sites" element={<ValetSitesPage />} />
+                <Route
+                    path="/sites"
+                    element={(
+                        <ValetSitesPage
+                            valetSites={valetSites}
+                            loadingValetSites={loadingValetSites}
+                            onRefresh={refreshValetSites}
+                        />
+                    )}
+                />
                 <Route
                     path="/valet"
                     element={

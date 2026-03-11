@@ -33,8 +33,15 @@ export function GetValetLinuxVerification(): $CancellablePromise<setup$0.ValetLi
     });
 }
 
+export function GetValetSites(): $CancellablePromise<setup$0.ValetSitesResult> {
+    return $Call.ByID(3284235411).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
 // Private type creation functions
 const $$createType0 = setup$0.ValetLinuxRemediationResult.createFrom;
 const $$createType1 = setup$0.HookInstallResult.createFrom;
 const $$createType2 = setup$0.Diagnostics.createFrom;
 const $$createType3 = setup$0.ValetLinuxVerification.createFrom;
+const $$createType4 = setup$0.ValetSitesResult.createFrom;

@@ -8,7 +8,7 @@ const navGroups = [
     {
         title: 'Product',
         items: [
-            { to: '/php', label: 'PHP Manager' },
+            { to: '/php', label: 'PHP' },
             { to: '/valet', label: 'Valet Linux' },
             { to: '/sites', label: 'Sites' },
             { to: '/services', label: 'Local Services' },

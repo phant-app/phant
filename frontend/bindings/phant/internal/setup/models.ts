@@ -355,9 +355,106 @@ export class ValetRemediationTarget {
     }
 }
 
+export class ValetSite {
+    "name": string;
+    "path": string;
+    "url": string;
+    "isSecure": boolean;
+    "phpVersion"?: string;
+
+    /** Creates a new ValetSite instance. */
+    constructor($$source: Partial<ValetSite> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("url" in $$source)) {
+            this["url"] = "";
+        }
+        if (!("isSecure" in $$source)) {
+            this["isSecure"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ValetSite instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ValetSite {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ValetSite($$parsedSource as Partial<ValetSite>);
+    }
+}
+
+export class ValetSitesResult {
+    "generatedAt": string;
+    "supported": boolean;
+    "os": string;
+    "source": string;
+    "sites": ValetSite[];
+    "parkedDirectories": string[];
+    "warnings": string[];
+    "error": string;
+
+    /** Creates a new ValetSitesResult instance. */
+    constructor($$source: Partial<ValetSitesResult> = {}) {
+        if (!("generatedAt" in $$source)) {
+            this["generatedAt"] = "";
+        }
+        if (!("supported" in $$source)) {
+            this["supported"] = false;
+        }
+        if (!("os" in $$source)) {
+            this["os"] = "";
+        }
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("sites" in $$source)) {
+            this["sites"] = [];
+        }
+        if (!("parkedDirectories" in $$source)) {
+            this["parkedDirectories"] = [];
+        }
+        if (!("warnings" in $$source)) {
+            this["warnings"] = [];
+        }
+        if (!("error" in $$source)) {
+            this["error"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ValetSitesResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ValetSitesResult {
+        const $$createField4_0 = $$createType6;
+        const $$createField5_0 = $$createType0;
+        const $$createField6_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("sites" in $$parsedSource) {
+            $$parsedSource["sites"] = $$createField4_0($$parsedSource["sites"]);
+        }
+        if ("parkedDirectories" in $$parsedSource) {
+            $$parsedSource["parkedDirectories"] = $$createField5_0($$parsedSource["parkedDirectories"]);
+        }
+        if ("warnings" in $$parsedSource) {
+            $$parsedSource["warnings"] = $$createField6_0($$parsedSource["warnings"]);
+        }
+        return new ValetSitesResult($$parsedSource as Partial<ValetSitesResult>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = ValetRemediationTarget.createFrom;
 const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = FPMServiceStatus.createFrom;
 const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = ValetSite.createFrom;
+const $$createType6 = $Create.Array($$createType5);
