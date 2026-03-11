@@ -2,7 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ActionButton } from "@/components/ui/action-button";
+import { Button } from "@/components/ui/button";
 import { Github } from "lucide-react";
+import { Browser } from "@wailsio/runtime";
 import type { ValetSitesResult } from "@/types";
 
 export function ValetSitesPage({
@@ -23,15 +25,18 @@ export function ValetSitesPage({
             <div>
                 <div className="flex items-center justify-between gap-3">
                     <h1 className="text-3xl font-bold tracking-tight">Sites</h1>
-                    <a
-                        href="https://github.com/cpriego/valet-linux"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100"
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 text-xs cursor-pointer"
+                        onClick={() => {
+                            void Browser.OpenURL("https://github.com/cpriego/valet-linux");
+                        }}
                     >
                         <Github className="h-4 w-4" />
                         cpriego/valet-linux
-                    </a>
+                    </Button>
                 </div>
                 <p className="text-muted-foreground mt-2">Discover your current sites through your Valet</p>
             </div>
@@ -95,7 +100,14 @@ export function ValetSitesPage({
                                         <p className="text-xs text-muted-foreground">{site.path}</p>
                                     </TableCell>
                                     <TableCell>
-                                        <a href={site.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                                        <a
+                                            href={site.url}
+                                            className="text-primary hover:underline"
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                void Browser.OpenURL(site.url);
+                                            }}
+                                        >
                                             {site.url}
                                         </a>
                                     </TableCell>

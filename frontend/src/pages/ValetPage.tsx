@@ -13,6 +13,7 @@ export function ValetPage({
     applyingValetRemediation,
     onApply,
     valetRemediationResult,
+    embedded = false,
 }: {
     valetVerification: ValetLinuxVerification | null;
     refreshingValet: boolean;
@@ -22,15 +23,18 @@ export function ValetPage({
     applyingValetRemediation: boolean;
     onApply: () => void;
     valetRemediationResult: ValetLinuxRemediationResult | null;
+    embedded?: boolean;
 }) {
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Valet Linux</h1>
-                <p className="text-muted-foreground mt-2">
-                    Diagnose and manage your Valet configuration safely. Review FPM hook targets and apply remediation.
-                </p>
-            </div>
+            {!embedded ? (
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Valet Linux</h1>
+                    <p className="text-muted-foreground mt-2">
+                        Diagnose and manage your Valet configuration safely. Review FPM hook targets and apply remediation.
+                    </p>
+                </div>
+            ) : null}
 
             <PageCard
                 title="Verification"
