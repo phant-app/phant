@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CheckCircle2 } from "lucide-react";
 import {
     GetPHPManagerSnapshot,
     InstallPHPVersion,
@@ -131,7 +132,9 @@ export function PhpManagerPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Available Versions</CardTitle>
-                    <CardDescription>Install or switch PHP versions from your Linux package manager.</CardDescription>
+                    <CardDescription>
+                        Install or switch PHP versions from your Linux package manager. The active CLI version is highlighted.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -144,17 +147,22 @@ export function PhpManagerPage() {
                         </TableHeader>
                         <TableBody>
                             {versions.map((v) => (
-                                <TableRow key={v.version}>
-                                    <TableCell className="font-medium">PHP {v.version}</TableCell>
+                                <TableRow
+                                    key={v.version}
+                                    className={v.active ? "bg-primary/5 hover:bg-primary/10" : undefined}
+                                >
+                                    <TableCell className={v.active ? "font-semibold text-primary" : "font-medium"}>
+                                        <span className="inline-flex items-center gap-2">
+                                            {v.active ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : null}
+                                            <span>{v.version}</span>
+                                        </span>
+                                    </TableCell>
                                     <TableCell>
                                         <div className="flex gap-2">
                                             {v.installed ? (
                                                 <Badge variant="secondary">Installed</Badge>
                                             ) : (
                                                 <Badge variant="outline">Not Installed</Badge>
-                                            )}
-                                            {v.active && (
-                                                <Badge className="bg-primary/20 text-primary hover:bg-primary/30">Active</Badge>
                                             )}
                                         </div>
                                     </TableCell>
@@ -164,7 +172,9 @@ export function PhpManagerPage() {
                                                 {workingVersion === v.version ? "Installing..." : "Install"}
                                             </Button>
                                         ) : v.active ? (
-                                            <Button variant="ghost" size="sm" disabled>Current</Button>
+                                            <Button variant="ghost" size="sm" disabled className="text-primary">
+                                                Current
+                                            </Button>
                                         ) : (
                                             <Button variant="secondary" size="sm" disabled={workingVersion !== null} onClick={() => switchVersion(v.version)}>
                                                 {workingVersion === v.version ? "Switching..." : "Switch"}

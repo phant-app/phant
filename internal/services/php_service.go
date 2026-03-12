@@ -15,16 +15,16 @@ type PHPService struct {
 }
 
 var phpServiceTimeouts = struct {
-	snapshot time.Duration
-	install  time.Duration
-	switchV  time.Duration
-	settings time.Duration
+	snapshot  time.Duration
+	install   time.Duration
+	switchV   time.Duration
+	settings  time.Duration
 	extension time.Duration
 }{
-	snapshot: 10 * time.Second,
-	install:  10 * time.Minute,
-	switchV:  30 * time.Second,
-	settings: 45 * time.Second,
+	snapshot:  10 * time.Second,
+	install:   10 * time.Minute,
+	switchV:   30 * time.Second,
+	settings:  45 * time.Second,
 	extension: 45 * time.Second,
 }
 

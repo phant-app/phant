@@ -3,6 +3,7 @@ package linux
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -260,5 +261,79 @@ func TestUniqueSortedVersions(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("unexpected version at %d: got %q want %q", i, got[i], want[i])
 		}
+	}
+}
+
+func TestNormalizeConfDPath(t *testing.T) {
+	t.Parallel()
+
+	got, err := normalizeConfDPath(`"/etc/php/8.4/cli/conf.d"`)
+	if err != nil {
+		t.Fatalf("normalizeConfDPath(...) error = %v, want nil", err)
+	}
+	if got != "/etc/php/8.4/cli/conf.d" {
+		t.Fatalf("normalizeConfDPath(...) = %q, want %q", got, "/etc/php/8.4/cli/conf.d")
+	}
+}
+
+func TestNormalizeConfDPathRejectsRelativePath(t *testing.T) {
+	t.Parallel()
+
+	_, err := normalizeConfDPath("etc/php/8.4/cli/conf.d")
+	if err == nil {
+		t.Fatalf("normalizeConfDPath(...) error = nil, want non-nil for relative path")
+	}
+}
+
+func TestFilterServicesForActiveVersion(t *testing.T) {
+	t.Parallel()
+
+	services := []fpmServiceTarget{
+		{ServiceName: "php8.3-fpm", ConfDPath: "/etc/php/8.3/fpm/conf.d"},
+		{ServiceName: "php8.4-fpm", ConfDPath: "/etc/php/8.4/fpm/conf.d"},
+	}
+
+	filtered := filterServicesForActiveVersion(services, "8.4")
+	if len(filtered) != 1 {
+		t.Fatalf("filterServicesForActiveVersion(...) length = %d, want %d", len(filtered), 1)
+	}
+	if filtered[0].ServiceName != "php8.4-fpm" {
+		t.Fatalf("filterServicesForActiveVersion(...)[0] = %q, want %q", filtered[0].ServiceName, "php8.4-fpm")
+	}
+}
+
+func TestUpdateSettingsUsesSinglePkexecBatch(t *testing.T) {
+	originalMkdirAll := makeDirAll
+	originalWriteFile := writeFile
+	makeDirAll = func(string, os.FileMode) error { return nil }
+	writeFile = func(string, []byte, os.FileMode) error { return os.ErrPermission }
+	t.Cleanup(func() {
+		makeDirAll = originalMkdirAll
+		writeFile = originalWriteFile
+	})
+
+	runner := newFakeRunner("linux")
+	runner.paths["pkexec"] = "/usr/bin/pkexec"
+	runner.outputs["php --ini"] = strings.Join([]string{
+		"Configuration File (php.ini) Path: /etc/php/8.4/cli",
+		"Scan for additional .ini files in: /etc/php/8.4/cli/conf.d",
+		"Additional .ini files parsed: (none)",
+	}, "\n")
+	runner.outputs["php -v"] = "PHP 8.4.2 (cli)"
+
+	provider := NewProvider(runner)
+	result := provider.UpdateSettings(context.Background(), domainphpmanager.IniSettingsUpdateRequest{MemoryLimit: "512M"})
+	if !result.Success {
+		t.Fatalf("UpdateSettings(...) success = false, want true; error=%q", result.Error)
+	}
+
+	pkexecCalls := 0
+	for _, command := range runner.commands {
+		if strings.HasPrefix(command, "pkexec ") {
+			pkexecCalls++
+		}
+	}
+	if pkexecCalls != 1 {
+		t.Fatalf("UpdateSettings(...) pkexec calls = %d, want %d; commands=%v", pkexecCalls, 1, runner.commands)
 	}
 }

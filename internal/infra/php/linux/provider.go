@@ -16,6 +16,11 @@ import (
 
 var versionPattern = regexp.MustCompile(`^\d+\.\d+$`)
 
+var (
+	makeDirAll = os.MkdirAll
+	writeFile  = os.WriteFile
+)
+
 type Provider struct {
 	runner system.Runner
 }
@@ -306,47 +311,57 @@ func (p *Provider) UpdateSettings(ctx context.Context, request domainphpmanager.
 		return domainphpmanager.ActionResult{Supported: true, Error: "unable to detect CLI conf.d directory"}
 	}
 
-	targets := []string{filepath.Join(cliConfDPath, "99-phant-settings.ini")}
+	normalizedCLIConfDPath, normalizeErr := normalizeConfDPath(cliConfDPath)
+	if normalizeErr != nil {
+		return domainphpmanager.ActionResult{Supported: true, Error: fmt.Sprintf("invalid CLI conf.d directory from php --ini: %v", normalizeErr)}
+	}
+
+	targets := []string{filepath.Join(normalizedCLIConfDPath, "99-phant-settings.ini")}
 	services := discoverFPMServiceTargets()
+	activeVersion, activeErr := p.discoverActiveVersion(ctx)
+	if activeErr == nil {
+		services = filterServicesForActiveVersion(services, activeVersion)
+	}
 	for _, service := range services {
 		targets = append(targets, filepath.Join(service.ConfDPath, "99-phant-settings.ini"))
 	}
 
-	hasWriteFailure := false
-	requiresPrivilege := false
-	suggested := make([]string, 0, len(targets))
-	usedPkexecForWrites := false
+	suggested := make([]string, 0, len(targets)+len(services))
 	for _, target := range targets {
-		usedPkexec, writeErr := p.writeManagedINI(ctx, target, content)
-		if usedPkexec {
-			usedPkexecForWrites = true
-		}
+		suggested = append(suggested, buildLinuxWriteManagedINICommand(target, content))
+	}
+	for _, service := range services {
+		suggested = append(suggested, service.RestartCommand)
+	}
+
+	writeRequiresPrivilege := false
+	for _, target := range targets {
+		writeErr := p.writeManagedINIDirect(target, content)
 		if writeErr != nil {
-			hasWriteFailure = true
-			if isPermissionError(writeErr) || strings.Contains(strings.ToLower(writeErr.Error()), "pkexec") {
-				requiresPrivilege = true
-				suggested = append(suggested, buildLinuxWriteManagedINICommand(target, content))
+			if isPermissionError(writeErr) {
+				writeRequiresPrivilege = true
+				break
+			}
+
+			return domainphpmanager.ActionResult{
+				Supported: true,
+				Error:     fmt.Sprintf("failed to write settings file %s: %v", target, writeErr),
 			}
 		}
 	}
 
-	if hasWriteFailure {
-		return domainphpmanager.ActionResult{
-			Supported:         true,
-			RequiresPrivilege: requiresPrivilege,
-			SuggestedCommands: uniqueStrings(suggested),
-			Message:           "one or more php.ini targets failed to update",
-			Error:             "failed to apply PHP settings to all targets",
-		}
-	}
+	restartRequiresPrivilege := false
+	if !writeRequiresPrivilege {
+		for _, service := range services {
+			restartErr := p.restartFPMServiceDirect(ctx, service.ServiceName)
+			if restartErr == nil {
+				continue
+			}
+			if requiresRootPrivileges(restartErr) {
+				restartRequiresPrivilege = true
+				break
+			}
 
-	usedPkexecForRestart := false
-	for _, service := range services {
-		usedPkexec, restartErr := p.restartFPMService(ctx, service.ServiceName)
-		if usedPkexec {
-			usedPkexecForRestart = true
-		}
-		if restartErr != nil {
 			return domainphpmanager.ActionResult{
 				Supported:         true,
 				RequiresPrivilege: true,
@@ -357,8 +372,32 @@ func (p *Provider) UpdateSettings(ctx context.Context, request domainphpmanager.
 		}
 	}
 
-	message := "PHP settings updated for CLI and discovered FPM services"
-	if usedPkexecForWrites || usedPkexecForRestart {
+	usedPkexec := false
+	if writeRequiresPrivilege || restartRequiresPrivilege {
+		if !p.canUsePkexec() {
+			return domainphpmanager.ActionResult{
+				Supported:         true,
+				RequiresPrivilege: true,
+				SuggestedCommands: uniqueStrings(suggested),
+				Message:           "admin privileges are required to apply PHP settings",
+				Error:             "failed to apply PHP settings without elevated permissions",
+			}
+		}
+
+		if err := p.applySettingsWithPkexec(ctx, targets, content, services); err != nil {
+			return domainphpmanager.ActionResult{
+				Supported:         true,
+				RequiresPrivilege: true,
+				SuggestedCommands: uniqueStrings(suggested),
+				Message:           "failed to apply settings via elevated command",
+				Error:             fmt.Sprintf("failed to apply PHP settings with pkexec: %v", err),
+			}
+		}
+		usedPkexec = true
+	}
+
+	message := "PHP settings updated for CLI and active PHP-FPM services"
+	if usedPkexec {
 		message += " (via pkexec)"
 	}
 
@@ -450,6 +489,14 @@ func (p *Provider) discoverInstalledVersions(ctx context.Context) ([]string, err
 		return nil, fmt.Errorf("dpkg-query failed: %w", err)
 	}
 	return uniqueSortedVersions(parseVersionsFromPackageList(output)), nil
+}
+
+func (p *Provider) discoverActiveVersion(ctx context.Context) (string, error) {
+	output, err := p.runner.Run(ctx, "php", "-v")
+	if err != nil {
+		return "", err
+	}
+	return parsePHPVersionFromOutput(output), nil
 }
 
 func (p *Provider) discoverAvailableVersions(ctx context.Context) ([]string, error) {
@@ -549,6 +596,26 @@ func discoverFPMServiceTargets() []fpmServiceTarget {
 	})
 
 	return targets
+}
+
+func filterServicesForActiveVersion(services []fpmServiceTarget, activeVersion string) []fpmServiceTarget {
+	if activeVersion == "" || len(services) == 0 {
+		return services
+	}
+
+	serviceName := fmt.Sprintf("php%s-fpm", activeVersion)
+	filtered := make([]fpmServiceTarget, 0, 1)
+	for _, service := range services {
+		if service.ServiceName == serviceName {
+			filtered = append(filtered, service)
+		}
+	}
+
+	if len(filtered) == 0 {
+		return services
+	}
+
+	return filtered
 }
 
 func uniqueSortedVersions(versions []string) []string {
@@ -712,45 +779,56 @@ func buildManagedPHPSettingsINI(request domainphpmanager.IniSettingsUpdateReques
 	return strings.Join(lines, "\n") + "\n", nil
 }
 
-func (p *Provider) writeManagedINI(ctx context.Context, targetPath string, content string) (bool, error) {
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-		return false, err
+func (p *Provider) writeManagedINIDirect(targetPath string, content string) error {
+	if !filepath.IsAbs(targetPath) {
+		return fmt.Errorf("refusing to write non-absolute path %q", targetPath)
 	}
-	if err := os.WriteFile(targetPath, []byte(content), 0o644); err == nil {
-		return false, nil
-	} else {
-		if !isPermissionError(err) {
-			return false, err
-		}
 
-		if !p.canUsePkexec() {
-			return false, err
-		}
-
-		tmpFile, tmpErr := os.CreateTemp("", "phant-php-settings-*.ini")
-		if tmpErr != nil {
-			return false, tmpErr
-		}
-		tmpPath := tmpFile.Name()
-		defer os.Remove(tmpPath)
-
-		if _, writeErr := tmpFile.WriteString(content); writeErr != nil {
-			tmpFile.Close()
-			return false, writeErr
-		}
-		if closeErr := tmpFile.Close(); closeErr != nil {
-			return false, closeErr
-		}
-
-		if _, mkdirErr := p.runner.Run(ctx, "pkexec", "mkdir", "-p", filepath.Dir(targetPath)); mkdirErr != nil {
-			return false, fmt.Errorf("pkexec mkdir failed: %w", mkdirErr)
-		}
-		if _, installErr := p.runner.Run(ctx, "pkexec", "install", "-m", "0644", tmpPath, targetPath); installErr != nil {
-			return false, fmt.Errorf("pkexec install failed: %w", installErr)
-		}
-
-		return true, nil
+	if err := makeDirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return err
 	}
+
+	return writeFile(targetPath, []byte(content), 0o644)
+}
+
+func (p *Provider) applySettingsWithPkexec(ctx context.Context, targets []string, content string, services []fpmServiceTarget) error {
+	tmpFile, tmpErr := os.CreateTemp("", "phant-php-settings-*.ini")
+	if tmpErr != nil {
+		return tmpErr
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	if _, writeErr := tmpFile.WriteString(content); writeErr != nil {
+		tmpFile.Close()
+		return writeErr
+	}
+	if closeErr := tmpFile.Close(); closeErr != nil {
+		return closeErr
+	}
+
+	var script strings.Builder
+	script.WriteString("set -e\n")
+	for _, target := range targets {
+		if !filepath.IsAbs(target) {
+			return fmt.Errorf("refusing to write non-absolute path %q", target)
+		}
+		script.WriteString("mkdir -p " + shellSingleQuote(filepath.Dir(target)) + "\n")
+		script.WriteString("install -m 0644 " + shellSingleQuote(tmpPath) + " " + shellSingleQuote(target) + "\n")
+	}
+
+	if _, err := p.runner.LookPath("systemctl"); err == nil {
+		for _, service := range services {
+			script.WriteString("systemctl restart " + shellSingleQuote(service.ServiceName) + "\n")
+		}
+	}
+
+	_, err := p.runner.Run(ctx, "pkexec", "sh", "-c", script.String())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func parseAdditionalINIPath(output string) string {
@@ -762,6 +840,21 @@ func parseAdditionalINIPath(output string) string {
 		}
 	}
 	return ""
+}
+
+func normalizeConfDPath(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.Trim(trimmed, "\"'")
+	if trimmed == "" || strings.EqualFold(trimmed, "(none)") {
+		return "", fmt.Errorf("path is empty")
+	}
+
+	clean := filepath.Clean(trimmed)
+	if !filepath.IsAbs(clean) {
+		return "", fmt.Errorf("path %q is not absolute", clean)
+	}
+
+	return clean, nil
 }
 
 func buildLinuxWriteManagedINICommand(targetPath string, content string) string {
@@ -809,10 +902,7 @@ func isPermissionError(err error) bool {
 }
 
 func (p *Provider) restartFPMService(ctx context.Context, serviceName string) (bool, error) {
-	if _, err := p.runner.LookPath("systemctl"); err != nil {
-		return false, nil
-	}
-	_, err := p.runner.Run(ctx, "systemctl", "restart", serviceName)
+	err := p.restartFPMServiceDirect(ctx, serviceName)
 	if err == nil {
 		return false, nil
 	}
@@ -827,6 +917,14 @@ func (p *Provider) restartFPMService(ctx context.Context, serviceName string) (b
 	}
 
 	return true, nil
+}
+
+func (p *Provider) restartFPMServiceDirect(ctx context.Context, serviceName string) error {
+	if _, err := p.runner.LookPath("systemctl"); err != nil {
+		return nil
+	}
+	_, err := p.runner.Run(ctx, "systemctl", "restart", serviceName)
+	return err
 }
 
 func (p *Provider) runWithPrivilegeFallback(ctx context.Context, name string, args ...string) (bool, error) {
