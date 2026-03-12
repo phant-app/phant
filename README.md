@@ -24,10 +24,17 @@ To build a redistributable, production mode package, use `wails3 build`.
 - Dump schema contract: [docs/specs/dump-event-schema.md](docs/specs/dump-event-schema.md)
 - Implementation plan (history): [docs/plans/2026-02-28-phant-dump-capture-implementation-plan.md](docs/plans/2026-02-28-phant-dump-capture-implementation-plan.md)
 
-## Current Status (2026-03-03)
+## Current Status (2026-03-11)
 
 - CLI dump capture is stable for `dump()` and `dd()` with one event per call.
 - Hook installer rewrites user prepend script at `~/.config/phant/php/phant_prepend.php` and configures CLI via `99-phant.ini` when available.
 - Valet Linux verification panel now reports FPM service wiring, active/enabled state, and recommended remediation commands.
 - Valet Linux panel includes guarded remediation apply flow (explicit confirmation required) to write FPM `99-phant.ini` and attempt service restarts.
-- Linux priority is now expanding from CLI-only verification to Valet Linux / FPM service boundary verification.
+- PHP Manager route now renders only PHP management content; CLI Diagnostics remains in Settings.
+- Wails service boundaries are now split by capability: `SetupService` for environment/setup concerns and `PHPService` for PHP manager concerns.
+- PHP Manager backend now exposes Linux-first actions to:
+	- discover installed/available PHP versions and active version
+	- install versions via apt-based Linux package commands
+	- switch active CLI PHP via `update-alternatives` and attempt Valet switch when available
+	- read/apply managed php.ini settings for CLI + discovered FPM targets
+	- discover extensions and toggle them with `phpenmod`/`phpdismod`

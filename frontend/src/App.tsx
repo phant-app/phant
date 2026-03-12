@@ -31,7 +31,6 @@ import { ValetSitesPage } from './pages/ValetSitesPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DumpsPage } from './pages/DumpsPage';
-import { SetupPage } from './pages/SetupPage';
 import { ValetPage } from './pages/ValetPage';
 import {
     Dialog,
@@ -253,18 +252,7 @@ function App() {
                     <Route path="/" element={<Navigate to="/dumps" replace />} />
                     <Route
                         path="/php"
-                    element={
-                        <div className="space-y-8">
-                            <PhpManagerPage />
-                            <SetupPage
-                                diagnostics={diagnostics}
-                                hookResult={hookResult}
-                                installingHook={installingHook}
-                                onRefresh={refreshDiagnostics}
-                                onEnable={enableCLIHook}
-                            />
-                        </div>
-                    }
+                        element={<PhpManagerPage />}
                 />
                 <Route
                     path="/sites"

@@ -113,3 +113,47 @@ export type ValetSitesResult = {
     warnings: string[];
     error: string;
 };
+
+export type PHPVersion = {
+    version: string;
+    installed: boolean;
+    active: boolean;
+};
+
+export type PHPIniSettings = {
+    uploadMaxFilesize: string;
+    postMaxSize: string;
+    memoryLimit: string;
+    maxExecutionTime: string;
+};
+
+export type PHPExtension = {
+    name: string;
+    enabled: boolean;
+    scope: string;
+    iniPath: string;
+    iniExists: boolean;
+};
+
+export type PHPManagerSnapshot = {
+    generatedAt: string;
+    supported: boolean;
+    platform: string;
+    activeVersion: string;
+    versions: PHPVersion[];
+    settings: PHPIniSettings;
+    extensions: PHPExtension[];
+    warnings: string[];
+    lastError: string;
+};
+
+export type PHPActionResult = {
+    success: boolean;
+    supported: boolean;
+    version: string;
+    command: string;
+    requiresPrivilege: boolean;
+    suggestedCommands: string[];
+    message: string;
+    error: string;
+};
