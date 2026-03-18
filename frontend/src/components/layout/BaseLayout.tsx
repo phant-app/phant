@@ -1,53 +1,80 @@
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import logoUrl from "@/assets/logo.png";
 import { Toaster } from "@/components/ui/sonner";
 
-const navItems = [
+const topNavItems = [
     { to: '/php', label: 'PHP' },
     { to: '/sites', label: 'Sites' },
     { to: '/services', label: 'Local Services' },
     { to: '/dumps', label: 'Live Dumps' },
+];
+
+const bottomNavItems = [
     { to: '/settings', label: 'Settings' },
 ];
 
 export function BaseLayout({ children }: { children: ReactNode }) {
     return (
-        <div className="flex h-screen w-full bg-background text-foreground selection:bg-primary/30 selection:text-primary min-h-screen">
-            <aside className="w-64 shrink-0 border-r border-border bg-card flex flex-col">
-                <div className="p-6 flex items-center">
-                    <img src={logoUrl} alt="Phant Logo" className="transition hover:animate-tilt duration-600" />
-                </div>
-                
-                <nav className="flex-1 px-4 overflow-y-auto pt-2 pb-6">
-                    <ul className="space-y-1">
-                        {navItems.map((item) => (
-                            <li key={item.to}>
-                                <NavLink
-                                    to={item.to}
-                                    className={({ isActive }) =>
-                                        cn(
-                                            "flex items-center rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-                                            isActive
-                                                ? "bg-primary/10 text-primary"
-                                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                        )
-                                    }
-                                >
-                                    {item.label}
-                                </NavLink>
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
-            </aside>
+        <div className="h-screen w-full overflow-hidden text-foreground selection:bg-primary selection:text-primary-foreground">
+            <div className="flex h-full w-full min-h-0 bg-card">
+                <aside className="flex w-full shrink-0 flex-col border-b-2 border-border bg-sidebar p-4 md:w-64 md:border-r-2 md:border-b-0 md:px-5 md:py-6 dark:border-zinc-800 dark:bg-zinc-950/70">
+                    <nav className="overflow-x-auto md:overflow-visible">
+                        <ul className="flex min-w-max gap-2 md:min-w-0 md:flex-col md:gap-1">
+                            {topNavItems.map((item) => (
+                                <li key={item.to} className="shrink-0 md:shrink">
+                                    <NavLink
+                                        to={item.to}
+                                        className={({ isActive }) =>
+                                            cn(
+                                                "block border-l-2 border-transparent px-3 py-2 text-left text-xs font-bold tracking-[0.12em] uppercase transition-all font-mono",
+                                                isActive
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                            )
+                                        }
+                                    >
+                                        <span className="pr-1 text-primary/90">&gt;_</span>
+                                        {item.label}
+                                    </NavLink>
+                                </li>
+                            ))}
+                        </ul>
+                    </nav>
 
-            <main className="flex-1 overflow-y-auto">
-                <div className="p-8 max-w-5xl mx-auto space-y-6">
-                    {children}
-                </div>
-            </main>
+                    <div className="mt-4 border-t-2 border-border pt-3 md:mt-auto dark:border-zinc-800">
+                        <p className="mb-2 font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">Settings + Diagnostics</p>
+                        <nav>
+                            <ul className="flex min-w-max gap-2 md:min-w-0 md:flex-col md:gap-1">
+                                {bottomNavItems.map((item) => (
+                                    <li key={item.to} className="shrink-0 md:shrink">
+                                        <NavLink
+                                            to={item.to}
+                                            className={({ isActive }) =>
+                                                cn(
+                                                    "block border-l-2 border-transparent px-3 py-2 text-left text-xs font-bold tracking-[0.12em] uppercase transition-all font-mono",
+                                                    isActive
+                                                        ? "border-primary bg-primary/10 text-primary"
+                                                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                                )
+                                            }
+                                        >
+                                            <span className="pr-1 text-primary/90">&gt;_</span>
+                                            {item.label}
+                                        </NavLink>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                    </div>
+                </aside>
+
+                <main className="min-h-0 flex-1 overflow-y-auto bg-card p-5 md:p-8">
+                    <div className="relative mx-auto max-w-6xl">
+                        {children}
+                    </div>
+                </main>
+            </div>
             <Toaster />
         </div>
     );

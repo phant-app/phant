@@ -168,15 +168,32 @@ export function PhpManagerPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {!v.installed ? (
-                                            <Button variant="outline" size="sm" disabled={workingVersion !== null} onClick={() => installVersion(v.version)}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-28 justify-center"
+                                                disabled={workingVersion !== null}
+                                                onClick={() => installVersion(v.version)}
+                                            >
                                                 {workingVersion === v.version ? "Installing..." : "Install"}
                                             </Button>
                                         ) : v.active ? (
-                                            <Button variant="ghost" size="sm" disabled className="text-primary">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                disabled
+                                                className="w-28 justify-center border-border/40 bg-muted/40 text-muted-foreground"
+                                            >
                                                 Current
                                             </Button>
                                         ) : (
-                                            <Button variant="secondary" size="sm" disabled={workingVersion !== null} onClick={() => switchVersion(v.version)}>
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                className="w-28 justify-center"
+                                                disabled={workingVersion !== null}
+                                                onClick={() => switchVersion(v.version)}
+                                            >
                                                 {workingVersion === v.version ? "Switching..." : "Switch"}
                                             </Button>
                                         )}
@@ -261,6 +278,7 @@ export function PhpManagerPage() {
                                         <Button
                                             variant={extension.enabled ? "outline" : "secondary"}
                                             size="sm"
+                                            className="w-28 justify-center"
                                             disabled={workingExtension !== null}
                                             onClick={() => toggleExtension(extension.name, !extension.enabled)}
                                         >

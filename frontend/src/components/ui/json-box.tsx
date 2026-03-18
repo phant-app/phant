@@ -20,7 +20,7 @@ export function JsonBox({ value }: { value: unknown }) {
 
     return (
         <div className="relative group">
-            <pre className={`overflow-x-auto rounded-md border border-border bg-muted/50 p-3 text-xs text-muted-foreground font-mono ${expanded ? 'max-h-none' : 'max-h-[300px] overflow-y-auto'}`}>
+            <pre className={`overflow-x-auto border border-zinc-300 bg-zinc-50 p-3 font-mono text-xs leading-relaxed text-zinc-700 cut-corner dark:border-zinc-800 dark:bg-black dark:text-zinc-300 ${expanded ? 'max-h-none' : 'max-h-[300px] overflow-y-auto'}`}>
                 {displayString}
             </pre>
             {isLarge && (
@@ -28,7 +28,7 @@ export function JsonBox({ value }: { value: unknown }) {
                     type="button"
                     variant="outline" 
                     size="sm" 
-                    className="absolute top-2 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm"
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => setExpanded(!expanded)}
                 >
                     {expanded ? 'Collapse' : 'Expand full JSON'}
