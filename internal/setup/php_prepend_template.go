@@ -22,7 +22,7 @@ function phant_send_event(array $event): void {
     }
 
     @stream_set_blocking($client, false);
-    $json = json_encode($event, JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR);
+    $json = json_encode($event, JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
     if ($json !== false) {
         @fwrite($client, $json . "\n");
     }
@@ -132,19 +132,28 @@ function phant_trace_callsite(): array {
 }
 
 function phant_normalize_property_name(string $rawKey, string $className): string {
-    if (str_starts_with($rawKey, "\0*\0")) {
-        return '#' . substr($rawKey, 3);
+    if (str_starts_with($rawKey, "\0")) {
+        $parts = explode("\0", $rawKey, 3);
+        if (count($parts) === 3) {
+            $declaring = (string)$parts[1];
+            $property = (string)$parts[2];
+
+            if ($declaring === '*') {
+                return '#' . $property;
+            }
+
+            if ($declaring === $className) {
+                return '-' . $property;
+            }
+
+            return '-' . $declaring . '::' . $property;
+        }
     }
 
-    $privatePrefix = "\0" . $className . "\0";
-    if (str_starts_with($rawKey, $privatePrefix)) {
-        return '-' . substr($rawKey, strlen($privatePrefix));
-    }
-
-    return '+' . $rawKey;
+    return '+' . str_replace("\0", '', $rawKey);
 }
 
-function phant_normalize_value($value, int $depth = 0, array &$seen = []) {
+function phant_normalize_value($value, int $depth = 0, array &$seen) {
     if ($depth > 10) {
         return ['__phantType' => 'max-depth'];
     }
@@ -200,7 +209,7 @@ function phant_emit_value($var, bool $isDd): void {
     $seen = [];
     $payload = phant_normalize_value($var, 0, $seen);
 
-    $payloadProbe = json_encode($payload, JSON_PARTIAL_OUTPUT_ON_ERROR);
+    $payloadProbe = json_encode($payload, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
     if ($payloadProbe === false) {
         $payload = ['string' => (string)$var];
     }

@@ -111,8 +111,7 @@ const isMaxDepthMarker = (value: unknown): boolean => (
     isPlainObject(value) && value.__phantType === 'max-depth'
 );
 
-const shouldExpandByDefault = (depth: number, size: number): boolean => {
-    void size;
+const shouldExpandByDefault = (depth: number): boolean => {
     return depth === 0;
 };
 
@@ -129,9 +128,19 @@ const DumpToggle = React.memo(({
         className="ml-1 cursor-pointer text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
         aria-label={expanded ? 'Collapse section' : 'Expand section'}
     >
-        [{expanded ? '▼' : '▶'}]
+        {expanded ? '▼' : '▶'}
     </button>
 ));
+
+const stringifyForClipboard = (value: unknown): string => {
+    const output = JSON.stringify(
+        value,
+        (_key, nestedValue) => (typeof nestedValue === 'bigint' ? nestedValue.toString() : nestedValue),
+        2,
+    );
+
+    return output ?? String(value);
+};
 
 const renderScalar = (value: unknown): React.ReactNode => {
     if (value === null) {
@@ -161,41 +170,104 @@ const renderScalar = (value: unknown): React.ReactNode => {
     return <span className="text-zinc-600 dark:text-zinc-400">{String(value)}</span>;
 };
 
-const DumpValueNode = React.memo(({ value, depth = 0 }: { value: unknown; depth?: number }) => {
+const DumpObjectNode = React.memo(({ value, depth }: { value: DumpObjectPayload; depth: number }) => {
     const indentation = depth > 0 ? 'ml-4' : '';
+    const properties = Object.entries(value.__properties);
+    const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth));
 
+    return (
+        <>
+            <span className="font-bold text-cyan-700 dark:text-cyan-400">{value.__className}</span>
+            <span className="text-zinc-500"> </span>
+            <span className="text-pink-600 dark:text-pink-400">{`{#${value.__objectId}`}</span>
+            <span className="text-zinc-500"> </span>
+            <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
+            {expanded ? (
+                <>
+                    {properties.map(([propertyName, nested]) => (
+                        <div key={`${depth}-${propertyName}`} className="ml-4">
+                            <span className="text-zinc-500">{propertyName}</span>
+                            <span className="text-zinc-500">: </span>
+                            <DumpValueNode value={nested} depth={depth + 1} />
+                        </div>
+                    ))}
+                    <div className={indentation}>
+                        <span className="text-zinc-500">{`}`}</span>
+                    </div>
+                </>
+            ) : (
+                <span className="text-zinc-500">{`}`}</span>
+            )}
+        </>
+    );
+});
+
+const DumpArrayNode = React.memo(({ value, depth }: { value: unknown[]; depth: number }) => {
+    const indentation = depth > 0 ? 'ml-4' : '';
+    const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth));
+
+    return (
+        <>
+            <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{value.length}</span>
+            <span className="text-zinc-500"> [</span>
+            <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
+            {expanded ? (
+                <>
+                    {value.map((item, index) => (
+                        <div key={`arr-${depth}-${index}`} className="ml-4">
+                            <span className="text-emerald-700 dark:text-emerald-400">&quot;{index}&quot;</span>
+                            <span className="text-zinc-500"> =&gt; </span>
+                            <DumpValueNode value={item} depth={depth + 1} />
+                        </div>
+                    ))}
+                    <div className={indentation}>
+                        <span className="text-zinc-500">]</span>
+                    </div>
+                </>
+            ) : (
+                <span className="text-zinc-500">]</span>
+            )}
+        </>
+    );
+});
+
+const DumpMapNode = React.memo(({ value, depth }: { value: Record<string, unknown>; depth: number }) => {
+    const indentation = depth > 0 ? 'ml-4' : '';
+    const entries = Object.entries(value);
+    const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth));
+
+    return (
+        <>
+            <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{entries.length}</span>
+            <span className="text-zinc-500"> [</span>
+            <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
+            {expanded ? (
+                <>
+                    {entries.map(([key, nested]) => (
+                        <div key={`${depth}-${key}`} className="ml-4">
+                            <span className="text-emerald-700 dark:text-emerald-400">&quot;{key}&quot;</span>
+                            <span className="text-zinc-500"> =&gt; </span>
+                            <DumpValueNode value={nested} depth={depth + 1} />
+                        </div>
+                    ))}
+                    <div className={indentation}>
+                        <span className="text-zinc-500">]</span>
+                    </div>
+                </>
+            ) : (
+                <span className="text-zinc-500">]</span>
+            )}
+        </>
+    );
+});
+
+const DumpValueNode = React.memo(({ value, depth = 0 }: { value: unknown; depth?: number }) => {
     if (isMaxDepthMarker(value)) {
         return <span className="text-zinc-500">...</span>;
     }
 
     if (isDumpObject(value)) {
-        const properties = Object.entries(value.__properties);
-        const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth, properties.length));
-
-        return (
-            <>
-                <span className="font-bold text-cyan-700 dark:text-cyan-400">{value.__className}</span>
-                <span className="text-zinc-500"> </span>
-                <span className="text-pink-600 dark:text-pink-400">{`{#${value.__objectId}`}</span>
-                <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
-                {expanded ? (
-                    <>
-                        {properties.map(([propertyName, nested]) => (
-                            <div key={`${depth}-${propertyName}`} className="ml-4">
-                                <span className="text-zinc-500">{propertyName}</span>
-                                <span className="text-zinc-500">: </span>
-                                <DumpValueNode value={nested} depth={depth + 1} />
-                            </div>
-                        ))}
-                        <div className={indentation}>
-                            <span className="text-zinc-500">{`}`}</span>
-                        </div>
-                    </>
-                ) : (
-                    <span className="text-zinc-500">{`}`}</span>
-                )}
-            </>
-        );
+        return <DumpObjectNode value={value} depth={depth} />;
     }
 
     if (isDumpObjectRef(value)) {
@@ -215,54 +287,11 @@ const DumpValueNode = React.memo(({ value, depth = 0 }: { value: unknown; depth?
     }
 
     if (Array.isArray(value)) {
-        const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth, value.length));
-
-        return (
-            <>
-                <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{value.length}</span>
-                <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
-                {expanded ? (
-                    <>
-                        {value.map((item, index) => (
-                            <div key={`arr-${depth}-${index}`} className="ml-4">
-                                <span className="text-emerald-700 dark:text-emerald-400">&quot;{index}&quot;</span>
-                                <span className="text-zinc-500"> =&gt; </span>
-                                <DumpValueNode value={item} depth={depth + 1} />
-                            </div>
-                        ))}
-                        <div className={indentation}>
-                            <span className="text-zinc-500">]</span>
-                        </div>
-                    </>
-                ) : null}
-            </>
-        );
+        return <DumpArrayNode value={value} depth={depth} />;
     }
 
     if (isPlainObject(value)) {
-        const entries = Object.entries(value);
-        const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth, entries.length));
-
-        return (
-            <>
-                <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{entries.length}</span>
-                <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
-                {expanded ? (
-                    <>
-                        {entries.map(([key, nested]) => (
-                            <div key={`${depth}-${key}`} className="ml-4">
-                                <span className="text-emerald-700 dark:text-emerald-400">&quot;{key}&quot;</span>
-                                <span className="text-zinc-500"> =&gt; </span>
-                                <DumpValueNode value={nested} depth={depth + 1} />
-                            </div>
-                        ))}
-                        <div className={indentation}>
-                            <span className="text-zinc-500">]</span>
-                        </div>
-                    </>
-                ) : null}
-            </>
-        );
+        return <DumpMapNode value={value} depth={depth} />;
     }
 
     return renderScalar(value);
@@ -282,7 +311,7 @@ const DumpRow = React.memo(({ event }: { event: DumpEvent }) => {
 
     const handleCopyDump = async () => {
         try {
-            const payloadText = JSON.stringify(event.payload, null, 2) ?? String(event.payload);
+            const payloadText = stringifyForClipboard(event.payload);
             const header = callsite
                 ? `${callsite.filePath}:${callsite.line}`
                 : 'unknown-callsite';
