@@ -1,5 +1,8 @@
 import React from 'react';
+import { Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import { ActionButton } from '@/components/ui/action-button';
+import { Button } from '@/components/ui/button';
 import { ValueRow } from '@/components/ui/value-row';
 import {
     Dialog,
@@ -11,22 +14,133 @@ import {
 } from '@/components/ui/dialog';
 import type { CollectorStatus, DumpEvent } from '@/types';
 
-const getCallsiteLabel = (event: DumpEvent): string | null => {
+type CallsiteDetails = {
+    filePath: string;
+    line: number;
+    primary: string;
+    closureContext?: string;
+    functionName?: string;
+};
+
+const shortenPath = (value: string, keepSegments = 3): string => {
+    if (!value) {
+        return value;
+    }
+
+    const normalized = value.replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
+    if (parts.length <= keepSegments) {
+        return normalized;
+    }
+
+    return `.../${parts.slice(parts.length - keepSegments).join('/')}`;
+};
+
+const extractClosureContext = (funcName: string): string | undefined => {
+    const match = funcName.match(/\{closure:([^}]+)\}/);
+    if (!match || !match[1]) {
+        return undefined;
+    }
+
+    return match[1];
+};
+
+const getCallsiteDetails = (event: DumpEvent): CallsiteDetails | null => {
     const frame = event.trace?.[0];
     if (!frame?.file || !frame?.line) {
         return null;
     }
 
-    if (frame.func) {
-        return `${frame.file}:${frame.line} (${frame.func})`;
-    }
+    const shortFile = shortenPath(frame.file, 4);
+    const functionName = frame.func || undefined;
+    const closureContext = functionName ? extractClosureContext(functionName) : undefined;
 
-    return `${frame.file}:${frame.line}`;
+    return {
+        filePath: frame.file,
+        line: frame.line,
+        primary: `${shortFile}:${frame.line}`,
+        closureContext,
+        functionName,
+    };
 };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => (
     typeof value === 'object' && value !== null && !Array.isArray(value)
 );
+
+type DumpObjectPayload = {
+    __phantType: 'object';
+    __className: string;
+    __objectId: number;
+    __properties: Record<string, unknown>;
+};
+
+type DumpObjectRefPayload = {
+    __phantType: 'object-ref';
+    __className: string;
+    __objectId: number;
+};
+
+type DumpResourcePayload = {
+    __phantType: 'resource';
+    __resourceType: string;
+};
+
+const isDumpObject = (value: unknown): value is DumpObjectPayload => (
+    isPlainObject(value)
+    && value.__phantType === 'object'
+    && typeof value.__className === 'string'
+    && typeof value.__objectId === 'number'
+    && isPlainObject(value.__properties)
+);
+
+const isDumpObjectRef = (value: unknown): value is DumpObjectRefPayload => (
+    isPlainObject(value)
+    && value.__phantType === 'object-ref'
+    && typeof value.__className === 'string'
+    && typeof value.__objectId === 'number'
+);
+
+const isDumpResource = (value: unknown): value is DumpResourcePayload => (
+    isPlainObject(value)
+    && value.__phantType === 'resource'
+    && typeof value.__resourceType === 'string'
+);
+
+const isMaxDepthMarker = (value: unknown): boolean => (
+    isPlainObject(value) && value.__phantType === 'max-depth'
+);
+
+const shouldExpandByDefault = (depth: number): boolean => {
+    return depth === 0;
+};
+
+const DumpToggle = React.memo(({
+    expanded,
+    onToggle,
+}: {
+    expanded: boolean;
+    onToggle: () => void;
+}) => (
+    <button
+        type="button"
+        onClick={onToggle}
+        className="ml-1 cursor-pointer text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+        aria-label={expanded ? 'Collapse section' : 'Expand section'}
+    >
+        {expanded ? '▼' : '▶'}
+    </button>
+));
+
+const stringifyForClipboard = (value: unknown): string => {
+    const output = JSON.stringify(
+        value,
+        (_key, nestedValue) => (typeof nestedValue === 'bigint' ? nestedValue.toString() : nestedValue),
+        2,
+    );
+
+    return output ?? String(value);
+};
 
 const renderScalar = (value: unknown): React.ReactNode => {
     if (value === null) {
@@ -49,84 +163,188 @@ const renderScalar = (value: unknown): React.ReactNode => {
         return <span className="font-bold text-pink-600 dark:text-pink-400">{value ? 'true' : 'false'}</span>;
     }
 
+    if (typeof value === 'bigint') {
+        return <span className="font-bold text-purple-700 dark:text-purple-300">{value.toString()}</span>;
+    }
+
     return <span className="text-zinc-600 dark:text-zinc-400">{String(value)}</span>;
 };
 
-const renderPhpDumpValue = (value: unknown, depth = 0): React.ReactNode => {
-    const indentClass = depth > 0 ? 'ml-4' : '';
+const DumpObjectNode = React.memo(({ value, depth }: { value: DumpObjectPayload; depth: number }) => {
+    const indentation = depth > 0 ? 'ml-4' : '';
+    const properties = Object.entries(value.__properties);
+    const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth));
 
-    if (Array.isArray(value)) {
+    return (
+        <>
+            <span className="font-bold text-cyan-700 dark:text-cyan-400">{value.__className}</span>
+            <span className="text-zinc-500"> </span>
+            <span className="text-pink-600 dark:text-pink-400">{`{#${value.__objectId}`}</span>
+            <span className="text-zinc-500"> </span>
+            <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
+            {expanded ? (
+                <>
+                    {properties.map(([propertyName, nested]) => (
+                        <div key={`${depth}-${propertyName}`} className="ml-4">
+                            <span className="text-zinc-500">{propertyName}</span>
+                            <span className="text-zinc-500">: </span>
+                            <DumpValueNode value={nested} depth={depth + 1} />
+                        </div>
+                    ))}
+                    <div className={indentation}>
+                        <span className="text-zinc-500">{`}`}</span>
+                    </div>
+                </>
+            ) : (
+                <span className="text-zinc-500">{`}`}</span>
+            )}
+        </>
+    );
+});
+
+const DumpArrayNode = React.memo(({ value, depth }: { value: unknown[]; depth: number }) => {
+    const indentation = depth > 0 ? 'ml-4' : '';
+    const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth));
+
+    return (
+        <>
+            <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{value.length}</span>
+            <span className="text-zinc-500"> [</span>
+            <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
+            {expanded ? (
+                <>
+                    {value.map((item, index) => (
+                        <div key={`arr-${depth}-${index}`} className="ml-4">
+                            <span className="text-emerald-700 dark:text-emerald-400">&quot;{index}&quot;</span>
+                            <span className="text-zinc-500"> =&gt; </span>
+                            <DumpValueNode value={item} depth={depth + 1} />
+                        </div>
+                    ))}
+                    <div className={indentation}>
+                        <span className="text-zinc-500">]</span>
+                    </div>
+                </>
+            ) : (
+                <span className="text-zinc-500">]</span>
+            )}
+        </>
+    );
+});
+
+const DumpMapNode = React.memo(({ value, depth }: { value: Record<string, unknown>; depth: number }) => {
+    const indentation = depth > 0 ? 'ml-4' : '';
+    const entries = Object.entries(value);
+    const [expanded, setExpanded] = React.useState(shouldExpandByDefault(depth));
+
+    return (
+        <>
+            <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{entries.length}</span>
+            <span className="text-zinc-500"> [</span>
+            <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
+            {expanded ? (
+                <>
+                    {entries.map(([key, nested]) => (
+                        <div key={`${depth}-${key}`} className="ml-4">
+                            <span className="text-emerald-700 dark:text-emerald-400">&quot;{key}&quot;</span>
+                            <span className="text-zinc-500"> =&gt; </span>
+                            <DumpValueNode value={nested} depth={depth + 1} />
+                        </div>
+                    ))}
+                    <div className={indentation}>
+                        <span className="text-zinc-500">]</span>
+                    </div>
+                </>
+            ) : (
+                <span className="text-zinc-500">]</span>
+            )}
+        </>
+    );
+});
+
+const DumpValueNode = React.memo(({ value, depth = 0 }: { value: unknown; depth?: number }) => {
+    if (isMaxDepthMarker(value)) {
+        return <span className="text-zinc-500">...</span>;
+    }
+
+    if (isDumpObject(value)) {
+        return <DumpObjectNode value={value} depth={depth} />;
+    }
+
+    if (isDumpObjectRef(value)) {
         return (
             <>
-                <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{value.length}</span>
-                <span className="text-zinc-500">[</span>
-                <span className="text-zinc-500">▼</span>
-                {value.map((item, index) => (
-                    <div key={`arr-${depth}-${index}`} className="ml-4">
-                        <span className="text-emerald-700 dark:text-emerald-400">&quot;{index}&quot;</span>
-                        <span className="text-zinc-500"> =&gt; </span>
-                        {isPlainObject(item) || Array.isArray(item)
-                            ? renderPhpDumpValue(item, depth + 1)
-                            : renderScalar(item)}
-                    </div>
-                ))}
-                <div className={indentClass}>
-                    <span className="text-zinc-500">]</span>
-                </div>
+                <span className="font-bold text-cyan-700 dark:text-cyan-400">{value.__className}</span>
+                <span className="text-zinc-500"> </span>
+                <span className="text-pink-600 dark:text-pink-400">{`{#${value.__objectId}`}</span>
+                <span className="text-zinc-500"> *RECURSION* </span>
+                <span className="text-zinc-500">{`}`}</span>
             </>
         );
+    }
+
+    if (isDumpResource(value)) {
+        return <span className="text-zinc-500">resource({value.__resourceType})</span>;
+    }
+
+    if (Array.isArray(value)) {
+        return <DumpArrayNode value={value} depth={depth} />;
     }
 
     if (isPlainObject(value)) {
-        const entries = Object.entries(value);
-
-        return (
-            <>
-                <span className="font-bold text-cyan-700 dark:text-cyan-400">array:{entries.length}</span>
-                <span className="text-zinc-500">[</span>
-                <span className="text-zinc-500">▼</span>
-                {entries.map(([key, nested]) => (
-                    <div key={`${depth}-${key}`} className="ml-4">
-                        <span className="text-emerald-700 dark:text-emerald-400">&quot;{key}&quot;</span>
-                        <span className="text-zinc-500"> =&gt; </span>
-                        {isPlainObject(nested) || Array.isArray(nested)
-                            ? renderPhpDumpValue(nested, depth + 1)
-                            : renderScalar(nested)}
-                    </div>
-                ))}
-                <div className={indentClass}>
-                    <span className="text-zinc-500">]</span>
-                </div>
-            </>
-        );
+        return <DumpMapNode value={value} depth={depth} />;
     }
 
     return renderScalar(value);
-};
+});
 
 const DumpPayloadView = React.memo(({ event }: { event: DumpEvent }) => (
     <div className="border border-zinc-200 bg-white p-3 text-sm leading-relaxed dark:border-zinc-800 dark:bg-black">
         <div className="overflow-x-auto font-mono text-[13px]">
-            {renderPhpDumpValue(event.payload)}
+            <DumpValueNode value={event.payload} />
         </div>
     </div>
 ));
 
 const DumpRow = React.memo(({ event }: { event: DumpEvent }) => {
-    const callsiteLabel = getCallsiteLabel(event);
+    const callsite = getCallsiteDetails(event);
     const occurredAt = new Date(event.timestamp).toLocaleString();
+
+    const handleCopyDump = async () => {
+        try {
+            const payloadText = stringifyForClipboard(event.payload);
+            const header = callsite
+                ? `${callsite.filePath}:${callsite.line}`
+                : 'unknown-callsite';
+            await navigator.clipboard.writeText(`${header}\n${payloadText}`);
+            toast.success('Dump copied', {
+                description: 'Payload and callsite copied to clipboard.',
+            });
+        } catch (error) {
+            toast.error('Failed to copy dump', {
+                description: 'Clipboard access was denied by the system.',
+            });
+        }
+    };
 
     return (
         <article className="space-y-3 border border-zinc-300 bg-white p-4 cut-corner dark:border-zinc-800 dark:bg-black/80">
             <div className="flex items-center justify-between border-b border-zinc-200 pb-2 font-mono text-[10px] tracking-[0.12em] text-zinc-500 uppercase dark:border-zinc-800 dark:text-zinc-500">
                 <span>{occurredAt}</span>
-                <span className="text-primary">DUMP PAYLOAD INTERCEPTED</span>
-            </div>
-            {callsiteLabel ? (
-                <div className="border-l-4 border-primary/80 bg-primary/5 px-3 py-2 font-mono text-xs text-zinc-600 dark:bg-primary/10 dark:text-zinc-300">
-                    <span className="text-zinc-500 dark:text-zinc-500">Callsite:</span> {callsiteLabel}
+                <div className="flex items-center gap-1">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="h-6 w-6"
+                        onClick={handleCopyDump}
+                        title="Copy dump payload"
+                        aria-label="Copy dump payload"
+                    >
+                        <Copy className="size-3" />
+                    </Button>
                 </div>
-            ) : null}
+            </div>
+
             <DumpPayloadView event={event} />
         </article>
     );
@@ -164,7 +382,7 @@ export function DumpsPage({
     onClear: () => void;
 }) {
     const latestEvent = events[events.length - 1];
-    const latestCallsiteLabel = latestEvent ? getCallsiteLabel(latestEvent) : null;
+    const latestCallsite = latestEvent ? getCallsiteDetails(latestEvent) : null;
     const [runtimeOpen, setRuntimeOpen] = React.useState(false);
 
     return (
@@ -174,7 +392,7 @@ export function DumpsPage({
                     DD()
                 </div>
                 <div className="flex items-end justify-between gap-4">
-                    <h1 className="font-rock text-4xl tracking-wide text-foreground uppercase md:text-5xl">Live Dumps</h1>
+                    <h1 className="font-rock text-4xl tracking-wide text-foreground uppercase md:text-5xl">Dumps</h1>
                     <div className="relative z-10 flex items-center gap-2">
                         <ActionButton onClick={() => setRuntimeOpen(true)}>Runtime</ActionButton>
                         <ActionButton onClick={onClear}>Clear Events</ActionButton>
@@ -191,9 +409,20 @@ export function DumpsPage({
                     <span className="font-mono bg-primary px-2 py-0.5 text-[10px] font-bold tracking-[0.14em] text-primary-foreground uppercase">
                         DUMPS_RCVD: {String(events.length).padStart(2, '0')}
                     </span>
-                    <span className="truncate font-mono text-[10px] text-muted-foreground">
-                        {latestCallsiteLabel || 'Waiting for first dump payload...'}
-                    </span>
+                    {latestCallsite ? (
+                        <div className="truncate text-right font-mono text-[10px] text-muted-foreground">
+                            <div title={`${latestCallsite.filePath}:${latestCallsite.line}`}>{latestCallsite.primary}</div>
+                            {latestCallsite.closureContext ? (
+                                <div className="text-primary/80" title={latestCallsite.closureContext}>
+                                    closure: {shortenPath(latestCallsite.closureContext, 3)}
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : (
+                        <span className="truncate font-mono text-[10px] text-muted-foreground">
+                            Waiting for first dump payload...
+                        </span>
+                    )}
                 </header>
 
                 <div className="relative min-h-0 flex-1 overflow-y-auto">

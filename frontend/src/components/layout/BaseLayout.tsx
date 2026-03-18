@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 const topNavItems = [
     { to: '/php', label: 'PHP' },
     { to: '/sites', label: 'Sites' },
-    { to: '/services', label: 'Local Services' },
-    { to: '/dumps', label: 'Live Dumps' },
+    { to: '/services', label: 'Services' },
+    { to: '/dumps', label: 'Dumps' },
 ];
 
 const bottomNavItems = [
@@ -43,7 +43,6 @@ export function BaseLayout({ children }: { children: ReactNode }) {
                     </nav>
 
                     <div className="mt-4 border-t-2 border-border pt-3 md:mt-auto dark:border-zinc-800">
-                        <p className="mb-2 font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">Settings + Diagnostics</p>
                         <nav>
                             <ul className="flex min-w-max gap-2 md:min-w-0 md:flex-col md:gap-1">
                                 {bottomNavItems.map((item) => (
