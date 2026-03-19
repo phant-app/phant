@@ -62,7 +62,7 @@ func TestProvider_DiscoverServices_RunningStoppedUnavailable(t *testing.T) {
 	runner := mockRunner{
 		outputs: map[string]string{
 			"systemctl list-unit-files --type=service --no-legend --plain redis.service": "redis.service enabled",
-			"systemctl is-active redis.service":                                   "active",
+			"systemctl is-active redis.service":                                          "active",
 			"systemctl list-unit-files --type=service --no-legend --plain mysql.service": "mysql.service enabled",
 		},
 		errors: map[string]error{
