@@ -160,7 +160,7 @@ const renderScalar = (value: unknown): React.ReactNode => {
     }
 
     if (typeof value === 'boolean') {
-        return <span className="font-bold text-pink-600 dark:text-pink-400">{value ? 'true' : 'false'}</span>;
+        return <span className="font-bold text-purple-600 dark:text-purple-400">{value ? 'true' : 'false'}</span>;
     }
 
     if (typeof value === 'bigint') {
@@ -179,7 +179,7 @@ const DumpObjectNode = React.memo(({ value, depth }: { value: DumpObjectPayload;
         <>
             <span className="font-bold text-cyan-700 dark:text-cyan-400">{value.__className}</span>
             <span className="text-zinc-500"> </span>
-            <span className="text-pink-600 dark:text-pink-400">{`{#${value.__objectId}`}</span>
+            <span className="text-purple-600 dark:text-purple-400">{`{#${value.__objectId}`}</span>
             <span className="text-zinc-500"> </span>
             <DumpToggle expanded={expanded} onToggle={() => setExpanded((previous) => !previous)} />
             {expanded ? (
@@ -275,7 +275,7 @@ const DumpValueNode = React.memo(({ value, depth = 0 }: { value: unknown; depth?
             <>
                 <span className="font-bold text-cyan-700 dark:text-cyan-400">{value.__className}</span>
                 <span className="text-zinc-500"> </span>
-                <span className="text-pink-600 dark:text-pink-400">{`{#${value.__objectId}`}</span>
+                <span className="text-purple-600 dark:text-purple-400">{`{#${value.__objectId}`}</span>
                 <span className="text-zinc-500"> *RECURSION* </span>
                 <span className="text-zinc-500">{`}`}</span>
             </>
