@@ -94,3 +94,34 @@ func TestProvider_DiscoverServices_RunningStoppedUnavailable(t *testing.T) {
 		t.Fatalf("mailpit state mismatch: expected unavailable, got %s", lookup["mailpit"].State)
 	}
 }
+
+func TestProvider_DiscoverServices_EmptyUnitOutputIsUnavailable(t *testing.T) {
+	runner := mockRunner{
+		outputs: map[string]string{
+			"systemctl list-unit-files --type=service --no-legend --plain mysql.service": "",
+			"systemctl list-unit-files --type=service --no-legend --plain redis.service": "redis.service enabled",
+			"systemctl is-active redis.service":                                          "active",
+		},
+	}
+
+	provider := NewProvider(runner)
+	services, warnings, err := provider.DiscoverServices(context.Background())
+	if err != nil {
+		t.Fatalf("DiscoverServices() error = %v, want nil", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("DiscoverServices() warnings = %v, want none", warnings)
+	}
+
+	lookup := map[string]servicesstatus.ServiceStatus{}
+	for _, service := range services {
+		lookup[service.ID] = service
+	}
+
+	if got := lookup["mysql"].State; got != servicesstatus.StateUnavailable {
+		t.Fatalf("DiscoverServices(mysql).State = %s, want %s", got, servicesstatus.StateUnavailable)
+	}
+	if got := lookup["redis"].State; got != servicesstatus.StateRunning {
+		t.Fatalf("DiscoverServices(redis).State = %s, want %s", got, servicesstatus.StateRunning)
+	}
+}

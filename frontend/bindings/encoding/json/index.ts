@@ -3,4 +3,4 @@
 
 export type {
     RawMessage
-} from "./models.js";
+} from "./models";

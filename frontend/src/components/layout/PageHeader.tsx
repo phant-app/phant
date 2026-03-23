@@ -19,7 +19,11 @@ export function PageHeader({
     return (
         <div className={cn('relative isolate border-b-2 border-border pb-4', className)}>
             {watermark ? (
-                <div className="pointer-events-none absolute -bottom-5 right-0 z-0 select-none font-rock text-[86px] text-zinc-200/80 dark:text-zinc-900/40 md:text-[150px]">
+                <div
+                    aria-hidden="true"
+                    role="presentation"
+                    className="pointer-events-none absolute -bottom-5 right-0 z-0 select-none font-rock text-[86px] text-zinc-200/80 dark:text-zinc-900/40 md:text-[150px]"
+                >
                     {watermark}
                 </div>
             ) : null}

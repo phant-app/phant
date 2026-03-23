@@ -7,7 +7,7 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as servicesstatus$0 from "../domain/servicesstatus/models.js";
+import * as servicesstatus$0 from "../domain/servicesstatus/models";
 
 export function GetServicesStatus(): $CancellablePromise<servicesstatus$0.Snapshot> {
     return $Call.ByID(782139552).then(($result: any) => {

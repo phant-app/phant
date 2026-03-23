@@ -27,5 +27,5 @@ func (p unsupportedProvider) Platform() string {
 
 func (p unsupportedProvider) DiscoverServices(context.Context) ([]servicesstatus.ServiceStatus, []string, error) {
 	warnings := []string{fmt.Sprintf("Services status is currently unsupported on %s.", p.platform)}
-	return nil, warnings, nil
+	return []servicesstatus.ServiceStatus{}, warnings, nil
 }

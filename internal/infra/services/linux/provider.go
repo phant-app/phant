@@ -95,8 +95,17 @@ func (p *Provider) inspectService(ctx context.Context, def serviceDefinition) se
 }
 
 func (p *Provider) unitExists(ctx context.Context, unit string) bool {
-	_, err := p.runner.Run(ctx, "systemctl", "list-unit-files", "--type=service", "--no-legend", "--plain", unit)
-	return err == nil
+	stdout, err := p.runner.Run(ctx, "systemctl", "list-unit-files", "--type=service", "--no-legend", "--plain", unit)
+	if err != nil {
+		return false
+	}
+
+	line := strings.TrimSpace(stdout)
+	if line == "" {
+		return false
+	}
+
+	return strings.Contains(line, unit)
 }
 
 func (p *Provider) readActiveState(ctx context.Context, unit string) (string, error) {

@@ -5,4 +5,4 @@ export {
     ServiceStatus,
     Snapshot,
     State
-} from "./models.js";
+} from "./models";
