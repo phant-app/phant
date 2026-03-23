@@ -95,11 +95,7 @@ export function ServicesPage() {
                         </CardHeader>
                         <CardContent className="space-y-2 pt-0">
                             <p className="font-mono text-xs text-muted-foreground">Port {service.port}</p>
-                            {service.unit ? (
-                                <p className="font-mono text-xs text-muted-foreground">Unit: {service.unit}</p>
-                            ) : (
-                                <p className="font-mono text-xs text-muted-foreground">Unit not detected on this machine</p>
-                            )}
+                            <p className="font-mono text-xs text-muted-foreground">Unit: {service.unit || "N/A"}</p>
                         </CardContent>
                     </Card>
                 ))}
