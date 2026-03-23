@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { GetServicesStatus } from "../../bindings/phant/internal/services/servicesstatusservice";
 import type { ServicesStatusSnapshot } from "@/types";
 
@@ -48,21 +49,17 @@ export function ServicesPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Services</h1>
-                <p className="text-muted-foreground mt-2">
-                    Check commonly used local services for Laravel development.
-                </p>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">
-                    {snapshot?.generatedAt ? `Last checked: ${new Date(snapshot.generatedAt).toLocaleString()}` : "Status not loaded yet"}
-                </p>
-                <ActionButton onClick={() => { void loadServices(); }} disabled={loading}>
-                    {loading ? "Refreshing..." : "Refresh"}
-                </ActionButton>
-            </div>
+            <PageHeader
+                title="Services"
+                watermark="SRV"
+                description="Check local service status for Laravel development workflows."
+                meta={snapshot?.generatedAt ? `Last checked: ${new Date(snapshot.generatedAt).toLocaleString()}` : "Status not loaded yet"}
+                actions={(
+                    <ActionButton onClick={() => { void loadServices(); }} disabled={loading}>
+                        {loading ? "Refreshing..." : "Refresh"}
+                    </ActionButton>
+                )}
+            />
 
             {snapshot?.lastError ? (
                 <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">

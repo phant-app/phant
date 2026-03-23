@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ActionButton } from "@/components/ui/action-button";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Github } from "lucide-react";
 import { Browser } from "@wailsio/runtime";
 import type { ValetSitesResult } from "@/types";
@@ -22,9 +23,11 @@ export function ValetSitesPage({
 
     return (
         <div className="space-y-6">
-            <div>
-                <div className="flex items-center justify-between gap-3">
-                    <h1 className="text-3xl font-bold tracking-tight">Sites</h1>
+            <PageHeader
+                title="Sites"
+                watermark="SITES"
+                description="Discover your currently linked and parked sites through Valet."
+                actions={(
                     <Button
                         type="button"
                         variant="outline"
@@ -37,9 +40,8 @@ export function ValetSitesPage({
                         <Github className="h-4 w-4" />
                         cpriego/valet-linux
                     </Button>
-                </div>
-                <p className="text-muted-foreground mt-2">Discover your current sites through your Valet</p>
-            </div>
+                )}
+            />
 
             {valetSites?.warnings?.length ? (
                 <div className="rounded-md border border-amber-600/40 bg-amber-500/10 p-3 text-sm text-amber-200">
