@@ -3,6 +3,7 @@ import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { ActionButton } from '@/components/ui/action-button';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ValueRow } from '@/components/ui/value-row';
 import {
     Dialog,
@@ -387,22 +388,22 @@ export function DumpsPage({
 
     return (
         <div className="relative flex min-h-full flex-col gap-6">
-            <div className="relative border-b-2 border-border pb-4">
-                <div className="pointer-events-none absolute -bottom-5 right-0 select-none font-rock text-[86px] text-zinc-200/80 dark:text-zinc-900/40 md:text-[150px]">
-                    DD()
-                </div>
-                <div className="flex items-end justify-between gap-4">
-                    <h1 className="font-rock text-4xl tracking-wide text-foreground uppercase md:text-5xl">Dumps</h1>
-                    <div className="relative z-10 flex items-center gap-2">
+            <PageHeader
+                title="Dumps"
+                watermark="DD()"
+                description={(
+                    <>
+                        Monitor <span className="border border-primary/40 bg-primary/10 px-1 text-primary">dump()</span> and{' '}
+                        <span className="border border-primary/40 bg-primary/10 px-1 text-primary">dd()</span> calls in real-time.
+                    </>
+                )}
+                actions={(
+                    <>
                         <ActionButton onClick={() => setRuntimeOpen(true)}>Runtime</ActionButton>
                         <ActionButton onClick={onClear}>Clear Events</ActionButton>
-                    </div>
-                </div>
-                <p className="mt-2 font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
-                    Monitor <span className="border border-primary/40 bg-primary/10 px-1 text-primary">dump()</span> and{' '}
-                    <span className="border border-primary/40 bg-primary/10 px-1 text-primary">dd()</span> calls in real-time.
-                </p>
-            </div>
+                    </>
+                )}
+            />
 
             <section className="flex min-h-[420px] flex-1 flex-col overflow-hidden border-2 border-border bg-muted/40 cut-corner scanlines dark:border-zinc-700 dark:bg-[#050505]">
                 <header className="relative z-20 flex items-center justify-between gap-3 border-b-2 border-border bg-muted px-4 py-2 dark:border-zinc-700 dark:bg-zinc-900">

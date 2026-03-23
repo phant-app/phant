@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { SetupPage } from "@/pages/SetupPage";
 import { ValetPage } from "@/pages/ValetPage";
 import type {
@@ -43,12 +44,11 @@ export function SettingsPage({
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-                <p className="text-muted-foreground mt-2">
-                    Manage diagnostics, Valet behavior, integrations, and appearance.
-                </p>
-            </div>
+            <PageHeader
+                title="Settings"
+                watermark="CFG"
+                description="Manage diagnostics, Valet behavior, integrations, and appearance."
+            />
 
             <div className="space-y-2">
                 <h2 className="text-xl font-semibold">Diagnostics</h2>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
     GetPHPManagerSnapshot,
     InstallPHPVersion,
@@ -115,13 +116,12 @@ export function PhpManagerPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">PHP</h1>
-                <p className="text-muted-foreground mt-2">
-                    Manage installed PHP versions. Switch the active globally linked PHP version used by Valet.
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">Active version: PHP {activeVersion}</p>
-            </div>
+            <PageHeader
+                title="PHP"
+                watermark="PHP"
+                description="Manage installed PHP versions and switch the active globally linked version used by Valet."
+                meta={`Active version: PHP ${activeVersion}`}
+            />
 
             {loading ? <p className="text-sm text-muted-foreground">Loading PHP manager...</p> : null}
             {snapshot?.lastError ? <p className="text-sm text-destructive">{snapshot.lastError}</p> : null}

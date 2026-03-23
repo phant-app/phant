@@ -9,6 +9,7 @@ type AppServices struct {
 	Dump      *DumpService
 	Setup     *SetupService
 	PHP       *PHPService
+	Services  *ServicesStatusService
 }
 
 func NewAppServices() *AppServices {
@@ -25,5 +26,6 @@ func NewAppServicesWithOptions(options Options) *AppServices {
 		Dump:      &DumpService{runtime: runtime},
 		Setup:     &SetupService{runtime: runtime},
 		PHP:       NewPHPService(),
+		Services:  NewServicesStatusService(),
 	}
 }

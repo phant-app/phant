@@ -1,4 +1,5 @@
 import { ActionButton } from '@/components/ui/action-button';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { JsonBox } from '@/components/ui/json-box';
 import { PageCard } from '@/components/ui/page-card';
 import { ValueRow } from '@/components/ui/value-row';
@@ -22,12 +23,11 @@ export function SetupPage({
     return (
         <div className="space-y-6">
             {!embedded ? (
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">CLI Diagnostics</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Verify that your PHP CLI setup includes the correct prepended hooks to capture dumps.
-                    </p>
-                </div>
+                <PageHeader
+                    title="CLI Diagnostics"
+                    watermark="CLI"
+                    description="Verify that your PHP CLI setup includes the correct prepended hooks to capture dumps."
+                />
             ) : null}
 
             <PageCard

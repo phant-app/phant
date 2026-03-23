@@ -157,3 +157,23 @@ export type PHPActionResult = {
     message: string;
     error: string;
 };
+
+export type ServiceState = 'running' | 'stopped' | 'unavailable';
+
+export type ServiceStatus = {
+    id: string;
+    label: string;
+    description: string;
+    port: number;
+    state: ServiceState;
+    unit: string;
+};
+
+export type ServicesStatusSnapshot = {
+    generatedAt: string;
+    platform: string;
+    supported: boolean;
+    services: ServiceStatus[];
+    warnings: string[];
+    lastError: string;
+};

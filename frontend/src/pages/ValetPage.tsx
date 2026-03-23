@@ -1,4 +1,5 @@
 import { ActionButton } from '@/components/ui/action-button';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { JsonBox } from '@/components/ui/json-box';
 import { PageCard } from '@/components/ui/page-card';
 import { ValueRow } from '@/components/ui/value-row';
@@ -28,12 +29,11 @@ export function ValetPage({
     return (
         <div className="space-y-6">
             {!embedded ? (
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Valet Linux</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Diagnose and manage your Valet configuration safely. Review FPM hook targets and apply remediation.
-                    </p>
-                </div>
+                <PageHeader
+                    title="Valet Linux"
+                    watermark="VLT"
+                    description="Diagnose and manage Valet configuration safely, then review FPM hook targets and apply remediation."
+                />
             ) : null}
 
             <PageCard
