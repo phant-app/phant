@@ -8,7 +8,7 @@ Phant automates the setup and management of local PHP development environments. 
 
 - **Service management**: Effortlessly start, stop, and monitor PHP, MySQL/MariaDB, Valkey/Redis, Mailpit, and more.
 - **Valet-style site routing**: Serve multiple projects with automatic local domain routing (like `myapp.test`).
-- **PHP version switching**: Quickly switch between installed PHP versions for different projects.
+- **PHP Manager**: Quickly install/switch between installed PHP versions for different projects.
 - **Project tools**: Utilities for database dumps, SSL, and more.
 - **Modern UI**: Clean, responsive interface built with React and Wails.
 
