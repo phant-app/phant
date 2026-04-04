@@ -45,8 +45,8 @@ Phant would not be possible without the open source community. Special thanks to
 
 Phant is licensed under the [Business Source License 1.1](LICENSE).
 
-✅ Free for: non-commercial use • individuals • companies with <100 employees • internal testing/dev
-💰 Official binaries with auto-updater: $9.99 [here](https://payhip.com/b/ygTYq)
-🔓 Automatically converts to MIT License in [YEAR = release year + 5]
+- ✅ Free for: non-commercial use • individuals • companies with <100 employees • internal testing/dev
+- 💰 Official binaries with auto-updater: $9.99 [here](https://payhip.com/b/ygTYq)
+- 🔓 Automatically converts to MIT License in [YEAR = release year + 5]
 
 Source available: clone, inspect, and build from source anytime.
