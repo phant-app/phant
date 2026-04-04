@@ -50,6 +50,12 @@ export function SettingsPage({
 }) {
     const { theme, setTheme } = useTheme();
 
+    const themeButtonClass = (isActive: boolean) => (
+        isActive
+            ? "min-w-24 border-primary bg-primary text-primary-foreground"
+            : "min-w-24 border-border/60 bg-transparent text-muted-foreground hover:border-primary/60 hover:text-primary"
+    );
+
     return (
         <div className="space-y-6">
             <PageHeader
@@ -123,19 +129,22 @@ export function SettingsPage({
                 <CardContent>
                     <div className="flex flex-wrap gap-4">
                         <Button
-                            variant={theme === "light" ? "default" : "outline"}
+                            variant="outline"
+                            className={themeButtonClass(theme === "light")}
                             onClick={() => setTheme("light")}
                         >
                             Light
                         </Button>
                         <Button
-                            variant={theme === "dark" ? "default" : "outline"}
+                            variant="outline"
+                            className={themeButtonClass(theme === "dark")}
                             onClick={() => setTheme("dark")}
                         >
                             Dark
                         </Button>
                         <Button
-                            variant={theme === "system" ? "default" : "outline"}
+                            variant="outline"
+                            className={themeButtonClass(theme === "system")}
                             onClick={() => setTheme("system")}
                         >
                             System

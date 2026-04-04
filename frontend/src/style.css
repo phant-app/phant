@@ -190,15 +190,15 @@
   }
 
   [data-slot='button'] {
-    border-radius: 0.45rem;
+    border-radius: 0.5rem;
     font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.16em;
     font-size: 0.7rem;
-    border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+    border: 1px solid transparent;
     position: relative;
     overflow: hidden;
-    transition: transform 120ms ease, box-shadow 120ms ease, background-color 160ms ease;
+    transition: transform 120ms ease, background-color 120ms ease, color 120ms ease, border-color 120ms ease;
   }
 
   [data-slot='button']:not(:disabled):hover {
@@ -210,50 +210,101 @@
   }
 
   [data-slot='button'][data-variant='default'] {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 82%, #fff 18%), var(--primary));
-    color: var(--primary-foreground);
-    border-color: color-mix(in srgb, var(--primary) 70%, #000 30%);
-    box-shadow:
-      0 4px 10px color-mix(in srgb, var(--primary) 28%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #fff 26%, transparent);
+    background: #ffffff;
+    color: #09090b;
+    border-color: transparent;
+  }
+
+  [data-slot='button'][data-variant='default']:not(:disabled):hover {
+    background: color-mix(in srgb, var(--primary) 80%, #ffffff 20%);
+    color: #ffffff;
+  }
+
+  [data-slot='button'][data-variant='default']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 90%, #000 10%);
+    color: #ffffff;
   }
 
   .dark [data-slot='button'][data-variant='default'] {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 66%, #fff 8%), color-mix(in srgb, var(--primary) 88%, #000 12%));
-    border-color: color-mix(in srgb, var(--primary) 75%, #000 25%);
-    box-shadow:
-      0 6px 14px color-mix(in srgb, var(--primary) 24%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #fff 16%, transparent);
+    background: #ffffff;
+    color: #09090b;
+    border-color: transparent;
+  }
+
+  .dark [data-slot='button'][data-variant='default']:not(:disabled):hover {
+    background: color-mix(in srgb, var(--primary) 84%, #ffffff 16%);
+    color: #ffffff;
+  }
+
+  .dark [data-slot='button'][data-variant='default']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 92%, #000 8%);
+    color: #ffffff;
   }
 
   [data-slot='button'][data-variant='secondary'] {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, #fff 8%), color-mix(in srgb, var(--card) 72%, #000 4%));
+    background: color-mix(in srgb, var(--card) 96%, #fff 4%);
     color: color-mix(in srgb, var(--foreground) 88%, #000 12%);
     border-color: color-mix(in srgb, var(--border) 55%, transparent);
-    box-shadow: 0 2px 8px rgba(9, 9, 11, 0.08);
   }
 
   .dark [data-slot='button'][data-variant='secondary'] {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--muted) 88%, #fff 4%), color-mix(in srgb, var(--muted) 70%, #000 30%));
-    color: color-mix(in srgb, var(--foreground) 90%, #fff 10%);
-    border-color: color-mix(in srgb, var(--border) 80%, transparent);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    background: color-mix(in srgb, var(--card) 72%, transparent);
+    color: color-mix(in srgb, #ffffff 92%, #000 8%);
+    border-color: color-mix(in srgb, #ffffff 18%, transparent);
   }
 
   [data-slot='button'][data-variant='outline'] {
-    background: color-mix(in srgb, var(--background) 74%, transparent);
-    border-color: color-mix(in srgb, var(--border) 62%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card) 18%, transparent);
+    background: color-mix(in srgb, var(--card) 96%, #fff 4%);
+    border-color: color-mix(in srgb, var(--border) 46%, transparent);
+    color: color-mix(in srgb, var(--foreground) 88%, #000 12%);
+  }
+
+  [data-slot='button'][data-variant='outline']:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--primary) 56%, transparent);
+    color: color-mix(in srgb, var(--primary) 78%, #000 22%);
+    background: color-mix(in srgb, var(--primary) 8%, #ffffff 92%);
+  }
+
+  [data-slot='button'][data-variant='outline']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 14%, #ffffff 86%);
   }
 
   .dark [data-slot='button'][data-variant='outline'] {
-    background: color-mix(in srgb, var(--card) 55%, transparent);
-    border-color: color-mix(in srgb, var(--border) 85%, transparent);
+    background: #0c0c12;
+    border-color: color-mix(in srgb, #ffffff 22%, transparent);
+    color: color-mix(in srgb, #ffffff 88%, #000 12%);
+  }
+
+  .dark [data-slot='button'][data-variant='outline']:not(:disabled):hover {
+    background: color-mix(in srgb, var(--primary) 12%, #0c0c12 88%);
+    border-color: color-mix(in srgb, var(--primary) 62%, transparent);
+    color: color-mix(in srgb, var(--primary) 82%, #ffffff 18%);
+  }
+
+  .dark [data-slot='button'][data-variant='outline']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 22%, #0c0c12 78%);
+  }
+
+  [data-slot='button'][data-variant='link'] {
+    border-color: transparent;
+    background: transparent;
+    padding: 0 0.35rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--foreground) 64%, transparent);
+  }
+
+  [data-slot='button'][data-variant='link']:not(:disabled):hover {
+    color: color-mix(in srgb, var(--primary) 84%, #ffffff 16%);
+    transform: none;
+  }
+
+  .dark [data-slot='button'][data-variant='link'] {
+    color: color-mix(in srgb, #ffffff 72%, transparent);
   }
 
   [data-slot='button']:disabled {
     opacity: 0.55;
-    box-shadow: none;
   }
 
   [data-slot='input'] {

@@ -13,7 +13,7 @@ export function ActionButton({
     return (
         <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={onClick}
             disabled={disabled}
