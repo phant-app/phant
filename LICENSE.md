@@ -2,11 +2,20 @@ Business Source License 1.1
 
 Parameters
 
-Licensor:             Ronald Pereira ("rondevz")
-Licensed Work:        Phant (Phant Desktop App)
-Additional Use Grant: You may use the Licensed Work for non-commercial purposes, by individuals or companies with fewer than 100 employees, or for internal testing and development purposes.
-Change Date:          5 years from the date of the first public release of Phant v1.0
-Change License:       MIT
+Licensor:
+- Ronald Pereira ("rondevz")
+
+Licensed Work:        
+- Phant (Phant Desktop App)
+
+Additional Use Grant: 
+ - You may use the Licensed Work for non-commercial purposes, by individuals or companies with fewer than 100 employees, or for internal testing and development purposes.
+
+Change Date:
+- 5 years from the date of the first public release of Phant v1.0
+
+Change License:
+- MIT
 
 Terms
 
