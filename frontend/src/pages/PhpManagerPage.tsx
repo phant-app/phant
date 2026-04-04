@@ -188,7 +188,7 @@ export function PhpManagerPage() {
                                             </Button>
                                         ) : (
                                             <Button
-                                                variant="secondary"
+                                                variant="outline"
                                                 size="sm"
                                                 className="w-28 justify-center"
                                                 disabled={workingVersion !== null}

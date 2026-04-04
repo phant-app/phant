@@ -190,20 +190,121 @@
   }
 
   [data-slot='button'] {
-    border-radius: 0;
+    border-radius: 0.5rem;
     font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.16em;
     font-size: 0.7rem;
-    border: 1px solid var(--border);
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
+    transition: transform 120ms ease, background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+
+  [data-slot='button']:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  [data-slot='button']:not(:disabled):active {
+    transform: translateY(0);
   }
 
   [data-slot='button'][data-variant='default'] {
-    box-shadow: 2px 2px 0 rgba(9, 9, 11, 1);
+    background: #ffffff;
+    color: #09090b;
+    border-color: transparent;
+  }
+
+  [data-slot='button'][data-variant='default']:not(:disabled):hover {
+    background: color-mix(in srgb, var(--primary) 80%, #ffffff 20%);
+    color: #ffffff;
+  }
+
+  [data-slot='button'][data-variant='default']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 90%, #000 10%);
+    color: #ffffff;
+  }
+
+  .dark [data-slot='button'][data-variant='default'] {
+    background: #ffffff;
+    color: #09090b;
+    border-color: transparent;
+  }
+
+  .dark [data-slot='button'][data-variant='default']:not(:disabled):hover {
+    background: color-mix(in srgb, var(--primary) 84%, #ffffff 16%);
+    color: #ffffff;
+  }
+
+  .dark [data-slot='button'][data-variant='default']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 92%, #000 8%);
+    color: #ffffff;
+  }
+
+  [data-slot='button'][data-variant='secondary'] {
+    background: color-mix(in srgb, var(--card) 96%, #fff 4%);
+    color: color-mix(in srgb, var(--foreground) 88%, #000 12%);
+    border-color: color-mix(in srgb, var(--border) 55%, transparent);
+  }
+
+  .dark [data-slot='button'][data-variant='secondary'] {
+    background: color-mix(in srgb, var(--card) 72%, transparent);
+    color: color-mix(in srgb, #ffffff 92%, #000 8%);
+    border-color: color-mix(in srgb, #ffffff 18%, transparent);
   }
 
   [data-slot='button'][data-variant='outline'] {
-    background: color-mix(in srgb, var(--background) 80%, transparent);
+    background: color-mix(in srgb, var(--card) 96%, #fff 4%);
+    border-color: color-mix(in srgb, var(--border) 46%, transparent);
+    color: color-mix(in srgb, var(--foreground) 88%, #000 12%);
+  }
+
+  [data-slot='button'][data-variant='outline']:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--primary) 56%, transparent);
+    color: color-mix(in srgb, var(--primary) 78%, #000 22%);
+    background: color-mix(in srgb, var(--primary) 8%, #ffffff 92%);
+  }
+
+  [data-slot='button'][data-variant='outline']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 14%, #ffffff 86%);
+  }
+
+  .dark [data-slot='button'][data-variant='outline'] {
+    background: #0c0c12;
+    border-color: color-mix(in srgb, #ffffff 22%, transparent);
+    color: color-mix(in srgb, #ffffff 88%, #000 12%);
+  }
+
+  .dark [data-slot='button'][data-variant='outline']:not(:disabled):hover {
+    background: color-mix(in srgb, var(--primary) 12%, #0c0c12 88%);
+    border-color: color-mix(in srgb, var(--primary) 62%, transparent);
+    color: color-mix(in srgb, var(--primary) 82%, #ffffff 18%);
+  }
+
+  .dark [data-slot='button'][data-variant='outline']:not(:disabled):active {
+    background: color-mix(in srgb, var(--primary) 22%, #0c0c12 78%);
+  }
+
+  [data-slot='button'][data-variant='link'] {
+    border-color: transparent;
+    background: transparent;
+    padding: 0 0.35rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--foreground) 64%, transparent);
+  }
+
+  [data-slot='button'][data-variant='link']:not(:disabled):hover {
+    color: color-mix(in srgb, var(--primary) 84%, #ffffff 16%);
+    transform: none;
+  }
+
+  .dark [data-slot='button'][data-variant='link'] {
+    color: color-mix(in srgb, #ffffff 72%, transparent);
+  }
+
+  [data-slot='button']:disabled {
+    opacity: 0.55;
   }
 
   [data-slot='input'] {

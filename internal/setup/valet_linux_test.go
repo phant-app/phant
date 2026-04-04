@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 )
 
@@ -46,5 +47,36 @@ func TestApplyValetLinuxRemediation_RequiresConfirmation(t *testing.T) {
 
 	if result.Message == "" {
 		t.Fatalf("ApplyValetLinuxRemediation(...) message should explain confirmation requirement")
+	}
+}
+
+func TestDiscoverFPMServicesSort_PrioritizesPreferredVersion(t *testing.T) {
+	services := []FPMServiceStatus{
+		{ServiceName: "php8.5-fpm.service", Version: "8.5"},
+		{ServiceName: "php8.4-fpm.service", Version: "8.4"},
+		{ServiceName: "php8.6-fpm.service", Version: "8.6"},
+	}
+	preferredVersion := "8.4"
+
+	sort.Slice(services, func(i, j int) bool {
+		leftPreferred := preferredVersion != "" && services[i].Version == preferredVersion
+		rightPreferred := preferredVersion != "" && services[j].Version == preferredVersion
+		if leftPreferred != rightPreferred {
+			return leftPreferred
+		}
+
+		return services[i].Version < services[j].Version
+	})
+
+	if len(services) != 3 {
+		t.Fatalf("discoverFPMServices sort setup got %d services, want 3", len(services))
+	}
+
+	if services[0].Version != "8.4" {
+		t.Fatalf("discoverFPMServices sort first version = %q, want %q", services[0].Version, "8.4")
+	}
+
+	if services[1].Version != "8.5" || services[2].Version != "8.6" {
+		t.Fatalf("discoverFPMServices sort tail versions = %q, %q, want %q, %q", services[1].Version, services[2].Version, "8.5", "8.6")
 	}
 }

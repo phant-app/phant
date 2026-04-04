@@ -1,5 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useTheme } from "@/components/theme-provider";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SetupPage } from "@/pages/SetupPage";
@@ -17,6 +19,9 @@ export function SettingsPage({
     installingHook,
     onRefreshDiagnostics,
     onEnableCLIHook,
+    licenseKey,
+    onLicenseKeyChange,
+    onSaveLicense,
     valetVerification,
     refreshingValet,
     onRefreshValet,
@@ -31,6 +36,9 @@ export function SettingsPage({
     installingHook: boolean;
     onRefreshDiagnostics: () => void;
     onEnableCLIHook: () => void;
+    licenseKey: string;
+    onLicenseKeyChange: (value: string) => void;
+    onSaveLicense: () => void;
     valetVerification: ValetLinuxVerification | null;
     refreshingValet: boolean;
     onRefreshValet: () => void;
@@ -41,6 +49,12 @@ export function SettingsPage({
     valetRemediationResult: ValetLinuxRemediationResult | null;
 }) {
     const { theme, setTheme } = useTheme();
+
+    const themeButtonClass = (isActive: boolean) => (
+        isActive
+            ? "min-w-24 border-primary bg-primary text-primary-foreground"
+            : "min-w-24 border-border/60 bg-transparent text-muted-foreground hover:border-primary/60 hover:text-primary"
+    );
 
     return (
         <div className="space-y-6">
@@ -84,7 +98,22 @@ export function SettingsPage({
                     <CardTitle>Integrations</CardTitle>
                     <CardDescription>Connections with external tools and services.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="license-key">License key</Label>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <Input
+                                id="license-key"
+                                value={licenseKey}
+                                onChange={(event) => onLicenseKeyChange(event.target.value)}
+                                placeholder="PHANT-XXXX-XXXX-XXXX"
+                            />
+                            <Button onClick={onSaveLicense}>Save</Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Used for auto-update eligibility and to support Phant development.
+                        </p>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                         Integrations are optional connections (for example editors, notifications, or tunnel/share tools).
                         This section is reserved for upcoming integration toggles.
@@ -100,19 +129,22 @@ export function SettingsPage({
                 <CardContent>
                     <div className="flex flex-wrap gap-4">
                         <Button
-                            variant={theme === "light" ? "default" : "outline"}
+                            variant="outline"
+                            className={themeButtonClass(theme === "light")}
                             onClick={() => setTheme("light")}
                         >
                             Light
                         </Button>
                         <Button
-                            variant={theme === "dark" ? "default" : "outline"}
+                            variant="outline"
+                            className={themeButtonClass(theme === "dark")}
                             onClick={() => setTheme("dark")}
                         >
                             Dark
                         </Button>
                         <Button
-                            variant={theme === "system" ? "default" : "outline"}
+                            variant="outline"
+                            className={themeButtonClass(theme === "system")}
                             onClick={() => setTheme("system")}
                         >
                             System

@@ -163,6 +163,7 @@ func ApplyValetLinuxRemediation(ctx context.Context, confirm bool) ValetLinuxRem
 
 	desired := buildConfDContent(result.ExpectedPrependPath)
 	allSucceeded := true
+	changesApplied := false
 
 	for _, service := range services {
 		target := ValetRemediationTarget{
@@ -186,6 +187,7 @@ func ApplyValetLinuxRemediation(ctx context.Context, confirm bool) ValetLinuxRem
 				}
 			} else {
 				target.Written = true
+				changesApplied = true
 			}
 		}
 
@@ -211,7 +213,11 @@ func ApplyValetLinuxRemediation(ctx context.Context, confirm bool) ValetLinuxRem
 
 	if allSucceeded {
 		result.Applied = true
-		result.Message = "Valet Linux remediation applied successfully."
+		if changesApplied {
+			result.Message = "Valet Linux remediation applied successfully."
+		} else {
+			result.Message = "No changes required. PHP-FPM hooks are already configured."
+		}
 		return result
 	}
 
@@ -252,7 +258,14 @@ func discoverFPMServices(ctx context.Context) ([]FPMServiceStatus, error) {
 		})
 	}
 
+	preferredVersion := strings.TrimSpace(detectDefaultPHPVersion(ctx))
 	sort.Slice(services, func(i, j int) bool {
+		leftPreferred := preferredVersion != "" && services[i].Version == preferredVersion
+		rightPreferred := preferredVersion != "" && services[j].Version == preferredVersion
+		if leftPreferred != rightPreferred {
+			return leftPreferred
+		}
+
 		return services[i].Version < services[j].Version
 	})
 
