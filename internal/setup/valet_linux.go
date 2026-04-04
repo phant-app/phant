@@ -163,6 +163,7 @@ func ApplyValetLinuxRemediation(ctx context.Context, confirm bool) ValetLinuxRem
 
 	desired := buildConfDContent(result.ExpectedPrependPath)
 	allSucceeded := true
+	changesApplied := false
 
 	for _, service := range services {
 		target := ValetRemediationTarget{
@@ -186,6 +187,7 @@ func ApplyValetLinuxRemediation(ctx context.Context, confirm bool) ValetLinuxRem
 				}
 			} else {
 				target.Written = true
+				changesApplied = true
 			}
 		}
 
@@ -211,7 +213,11 @@ func ApplyValetLinuxRemediation(ctx context.Context, confirm bool) ValetLinuxRem
 
 	if allSucceeded {
 		result.Applied = true
-		result.Message = "Valet Linux remediation applied successfully."
+		if changesApplied {
+			result.Message = "Valet Linux remediation applied successfully."
+		} else {
+			result.Message = "No changes required. PHP-FPM hooks are already configured."
+		}
 		return result
 	}
 
@@ -256,7 +262,34 @@ func discoverFPMServices(ctx context.Context) ([]FPMServiceStatus, error) {
 		return services[i].Version < services[j].Version
 	})
 
+	preferredVersion := detectDefaultPHPVersion(ctx)
+	services = filterFPMServicesByPreferredVersion(services, preferredVersion)
+
 	return services, nil
+}
+
+func filterFPMServicesByPreferredVersion(services []FPMServiceStatus, preferredVersion string) []FPMServiceStatus {
+	if len(services) == 0 {
+		return services
+	}
+
+	trimmedPreferred := strings.TrimSpace(preferredVersion)
+	if trimmedPreferred == "" {
+		return services
+	}
+
+	filtered := make([]FPMServiceStatus, 0, len(services))
+	for _, service := range services {
+		if service.Version == trimmedPreferred {
+			filtered = append(filtered, service)
+		}
+	}
+
+	if len(filtered) == 0 {
+		return services
+	}
+
+	return filtered
 }
 
 func expectedPrependPath() string {

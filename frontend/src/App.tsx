@@ -32,18 +32,12 @@ import { ServicesPage } from './pages/ServicesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DumpsPage } from './pages/DumpsPage';
 import { ValetPage } from './pages/ValetPage';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from './components/ui/dialog';
-import { Button } from './components/ui/button';
+import { OnboardingPage } from './pages/OnboardingPage';
 
 const MAX_RENDERED_EVENTS = 500;
 const ONBOARDING_SEEN_KEY = 'phant:onboarding:v1:seen';
+const LICENSE_KEY_STORAGE = 'phant:license:v1:key';
+const ONBOARDING_PATH = '/onboarding';
 
 const isSameCollectorStatus = (
     previous: CollectorStatus | null,
@@ -76,15 +70,34 @@ function App() {
     const [refreshingValet, setRefreshingValet] = useState(false);
     const [valetRemediationResult, setValetRemediationResult] = useState<ValetLinuxRemediationResult | null>(null);
     const [applyingValetRemediation, setApplyingValetRemediation] = useState(false);
+    const [installingFPMHook, setInstallingFPMHook] = useState(false);
     const [confirmValetRemediation, setConfirmValetRemediation] = useState(false);
-    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [onboardingReady, setOnboardingReady] = useState(false);
+    const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+    const [licenseKey, setLicenseKey] = useState('');
 
     useEffect(() => {
         const seenOnboarding = window.localStorage.getItem(ONBOARDING_SEEN_KEY) === 'true';
-        if (!seenOnboarding) {
-            setShowOnboarding(true);
-        }
+        const storedLicenseKey = window.localStorage.getItem(LICENSE_KEY_STORAGE) || '';
+        setOnboardingCompleted(seenOnboarding);
+        setLicenseKey(storedLicenseKey);
+        setOnboardingReady(true);
     }, []);
+
+    useEffect(() => {
+        if (!onboardingReady) {
+            return;
+        }
+
+        if (!onboardingCompleted && location.pathname !== ONBOARDING_PATH) {
+            navigate(ONBOARDING_PATH, { replace: true });
+            return;
+        }
+
+        if (onboardingCompleted && location.pathname === ONBOARDING_PATH) {
+            navigate('/dumps', { replace: true });
+        }
+    }, [location.pathname, navigate, onboardingCompleted, onboardingReady]);
 
     useEffect(() => {
         let disposed = false;
@@ -237,19 +250,66 @@ function App() {
 
     const completeOnboarding = () => {
         window.localStorage.setItem(ONBOARDING_SEEN_KEY, 'true');
-        setShowOnboarding(false);
+        setOnboardingCompleted(true);
     };
 
-    const startSetupFromOnboarding = () => {
-        completeOnboarding();
-        navigate('/settings');
+    const saveLicenseFromOnboarding = () => {
+        const normalized = licenseKey.trim();
+        if (normalized.length === 0) {
+            window.localStorage.removeItem(LICENSE_KEY_STORAGE);
+            return;
+        }
+
+        window.localStorage.setItem(LICENSE_KEY_STORAGE, normalized);
     };
+
+    const runHookSetupFromOnboarding = async () => {
+        await enableCLIHook();
+    };
+
+    const runFPMSetupFromOnboarding = async () => {
+        setInstallingFPMHook(true);
+        try {
+            const result = await ApplyValetLinuxRemediation(true);
+            setValetRemediationResult(result);
+            const latestValetStatus = await GetValetLinuxVerification();
+            setValetVerification(latestValetStatus);
+        } finally {
+            setInstallingFPMHook(false);
+        }
+    };
+
+    if (!onboardingReady) {
+        return null;
+    }
+
+    if (!onboardingCompleted && location.pathname === ONBOARDING_PATH) {
+        return (
+            <ThemeProvider defaultTheme="dark" storageKey="phant-ui-theme">
+                <OnboardingPage
+                    diagnostics={diagnostics}
+                    valetVerification={valetVerification}
+                    hookResult={hookResult}
+                    fpmHookResult={valetRemediationResult}
+                    installingHook={installingHook}
+                    installingFPMHook={installingFPMHook}
+                    licenseKey={licenseKey}
+                    onLicenseKeyChange={setLicenseKey}
+                    onSetupHook={runHookSetupFromOnboarding}
+                    onSetupFPMHook={runFPMSetupFromOnboarding}
+                    onSaveLicense={saveLicenseFromOnboarding}
+                    onComplete={completeOnboarding}
+                />
+            </ThemeProvider>
+        );
+    }
 
     return (
         <ThemeProvider defaultTheme="dark" storageKey="phant-ui-theme">
             <BaseLayout>
                 <Routes>
                     <Route path="/" element={<Navigate to="/dumps" replace />} />
+                    <Route path="/onboarding" element={<Navigate to="/dumps" replace />} />
                     <Route
                         path="/php"
                         element={<PhpManagerPage />}
@@ -293,6 +353,9 @@ function App() {
                             installingHook={installingHook}
                             onRefreshDiagnostics={refreshDiagnostics}
                             onEnableCLIHook={enableCLIHook}
+                            licenseKey={licenseKey}
+                            onLicenseKeyChange={setLicenseKey}
+                            onSaveLicense={saveLicenseFromOnboarding}
                             valetVerification={valetVerification}
                             refreshingValet={refreshingValet}
                             onRefreshValet={refreshValetVerification}
@@ -307,24 +370,6 @@ function App() {
                 <Route path="*" element={<Navigate to="/dumps" replace />} />
             </Routes>
         </BaseLayout>
-            <Dialog open={showOnboarding} onOpenChange={(open) => {
-                if (!open) {
-                    completeOnboarding();
-                }
-            }}>
-                <DialogContent showCloseButton={false}>
-                    <DialogHeader>
-                        <DialogTitle>Welcome to Phant</DialogTitle>
-                        <DialogDescription>
-                            Let&apos;s get your environment ready. Start with Settings to review Diagnostics and Valet.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={completeOnboarding}>Skip</Button>
-                        <Button onClick={startSetupFromOnboarding}>Open Settings</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </ThemeProvider>
     );
 }

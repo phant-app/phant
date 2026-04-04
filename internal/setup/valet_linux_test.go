@@ -48,3 +48,30 @@ func TestApplyValetLinuxRemediation_RequiresConfirmation(t *testing.T) {
 		t.Fatalf("ApplyValetLinuxRemediation(...) message should explain confirmation requirement")
 	}
 }
+
+func TestFilterFPMServicesByPreferredVersion_MatchesPreferred(t *testing.T) {
+	services := []FPMServiceStatus{
+		{ServiceName: "php8.4-fpm.service", Version: "8.4"},
+		{ServiceName: "php8.5-fpm.service", Version: "8.5"},
+	}
+
+	got := filterFPMServicesByPreferredVersion(services, "8.4")
+	if len(got) != 1 {
+		t.Fatalf("filterFPMServicesByPreferredVersion(...): got %d services, want 1", len(got))
+	}
+	if got[0].Version != "8.4" {
+		t.Fatalf("filterFPMServicesByPreferredVersion(...): got version %q, want %q", got[0].Version, "8.4")
+	}
+}
+
+func TestFilterFPMServicesByPreferredVersion_NoMatchReturnsAll(t *testing.T) {
+	services := []FPMServiceStatus{
+		{ServiceName: "php8.4-fpm.service", Version: "8.4"},
+		{ServiceName: "php8.5-fpm.service", Version: "8.5"},
+	}
+
+	got := filterFPMServicesByPreferredVersion(services, "8.3")
+	if len(got) != len(services) {
+		t.Fatalf("filterFPMServicesByPreferredVersion(...): got %d services, want %d", len(got), len(services))
+	}
+}
