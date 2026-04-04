@@ -13,7 +13,7 @@ const sortOrder = {
 } as const;
 
 const badgeByState = {
-    running: "border-emerald-500/50 bg-emerald-500/10 text-emerald-500",
+    running: "border-emerald-300/70 bg-emerald-400/30 text-emerald-200",
     stopped: "border-amber-500/50 bg-amber-500/10 text-amber-500",
     unavailable: "border-zinc-500/50 bg-zinc-500/10 text-zinc-400",
 } as const;

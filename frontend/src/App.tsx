@@ -35,7 +35,8 @@ import { ValetPage } from './pages/ValetPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 
 const MAX_RENDERED_EVENTS = 500;
-const ONBOARDING_SEEN_KEY = 'phant:onboarding:v1:seen';
+const ONBOARDING_COMPLETED_KEY = 'phant:onboarding:v1:completed';
+const ONBOARDING_SEEN_LEGACY_KEY = 'phant:onboarding:v1:seen';
 const LICENSE_KEY_STORAGE = 'phant:license:v1:key';
 const ONBOARDING_PATH = '/onboarding';
 
@@ -77,9 +78,10 @@ function App() {
     const [licenseKey, setLicenseKey] = useState('');
 
     useEffect(() => {
-        const seenOnboarding = window.localStorage.getItem(ONBOARDING_SEEN_KEY) === 'true';
+        const completedOnboarding = window.localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true'
+            || window.localStorage.getItem(ONBOARDING_SEEN_LEGACY_KEY) === 'true';
         const storedLicenseKey = window.localStorage.getItem(LICENSE_KEY_STORAGE) || '';
-        setOnboardingCompleted(seenOnboarding);
+        setOnboardingCompleted(completedOnboarding);
         setLicenseKey(storedLicenseKey);
         setOnboardingReady(true);
     }, []);
@@ -249,7 +251,8 @@ function App() {
     };
 
     const completeOnboarding = () => {
-        window.localStorage.setItem(ONBOARDING_SEEN_KEY, 'true');
+        window.localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+        window.localStorage.removeItem(ONBOARDING_SEEN_LEGACY_KEY);
         setOnboardingCompleted(true);
     };
 
