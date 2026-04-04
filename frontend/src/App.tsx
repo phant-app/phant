@@ -312,7 +312,7 @@ function App() {
             <BaseLayout>
                 <Routes>
                     <Route path="/" element={<Navigate to="/dumps" replace />} />
-                    <Route path="/onboarding" element={<Navigate to="/dumps" replace />} />
+                    <Route path={ONBOARDING_PATH} element={<Navigate to="/dumps" replace />} />
                     <Route
                         path="/php"
                         element={<PhpManagerPage />}

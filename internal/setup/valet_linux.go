@@ -258,38 +258,18 @@ func discoverFPMServices(ctx context.Context) ([]FPMServiceStatus, error) {
 		})
 	}
 
+	preferredVersion := strings.TrimSpace(detectDefaultPHPVersion(ctx))
 	sort.Slice(services, func(i, j int) bool {
+		leftPreferred := preferredVersion != "" && services[i].Version == preferredVersion
+		rightPreferred := preferredVersion != "" && services[j].Version == preferredVersion
+		if leftPreferred != rightPreferred {
+			return leftPreferred
+		}
+
 		return services[i].Version < services[j].Version
 	})
 
-	preferredVersion := detectDefaultPHPVersion(ctx)
-	services = filterFPMServicesByPreferredVersion(services, preferredVersion)
-
 	return services, nil
-}
-
-func filterFPMServicesByPreferredVersion(services []FPMServiceStatus, preferredVersion string) []FPMServiceStatus {
-	if len(services) == 0 {
-		return services
-	}
-
-	trimmedPreferred := strings.TrimSpace(preferredVersion)
-	if trimmedPreferred == "" {
-		return services
-	}
-
-	filtered := make([]FPMServiceStatus, 0, len(services))
-	for _, service := range services {
-		if service.Version == trimmedPreferred {
-			filtered = append(filtered, service)
-		}
-	}
-
-	if len(filtered) == 0 {
-		return services
-	}
-
-	return filtered
 }
 
 func expectedPrependPath() string {

@@ -187,8 +187,12 @@ export function OnboardingPage({
 
                             <div className="border border-border bg-background/60 p-3 space-y-1">
                                 <p className="font-mono text-xs uppercase tracking-[0.14em]">Environment Snapshot</p>
-                                <p className="text-xs text-muted-foreground">PHP found: {diagnostics?.phpFound ? "yes" : "no"}</p>
-                                <p className="text-xs text-muted-foreground">PHP version: {diagnostics?.phpVersion || "n/a"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    PHP found: {diagnostics == null ? "loading" : diagnostics.phpFound ? "yes" : "no"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    PHP version: {diagnostics == null ? "loading" : diagnostics.phpVersion || "n/a"}
+                                </p>
                                 <p className="text-xs text-muted-foreground">Hook: {cliHookEnabled ? "enabled" : "pending"}</p>
                                 <p className="text-xs text-muted-foreground">
                                     FPM hook: {fpmHookEnabled ? "enabled" : "pending"}
