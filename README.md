@@ -1,40 +1,52 @@
-# README
+# Phant
 
-## About
+Welcome to **Phant** – your all-in-one PHP development environment toolkit. Phant streamlines local PHP development for Laravel and other modern PHP projects, providing a fast, reliable, and user-friendly experience on Linux and macOS.
 
-This is the official Wails React-TS template.
+## Introduction
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+Phant automates the setup and management of local PHP development environments. It includes:
 
-## Live Development
+- **Service management**: Effortlessly start, stop, and monitor PHP, MySQL/MariaDB, Valkey/Redis, Mailpit, and more.
+- **Valet-style site routing**: Serve multiple projects with automatic local domain routing (like `myapp.test`).
+- **PHP version switching**: Quickly switch between installed PHP versions for different projects.
+- **Project tools**: Utilities for database dumps, SSL, and more.
+- **Modern UI**: Clean, responsive interface built with React and Wails.
 
-To run in live development mode, run `wails3 dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+Phant is designed for solo developers, teams, and companies who want a hassle-free, reproducible PHP dev setup.
 
-## Building
+## Issues
 
-To build a redistributable, production mode package, use `wails3 build`.
+Found a bug or have a feature request? Please [open an issue](https://github.com/phant-app/phant/issues) on GitHub. Include as much detail as possible (OS, Phant version, steps to reproduce, logs if available).
 
-## Architecture Docs
+## Contribution
 
-- Architecture overview: [docs/architecture/overview.md](docs/architecture/overview.md)
-- Dump schema contract: [docs/specs/dump-event-schema.md](docs/specs/dump-event-schema.md)
-- Implementation plan (history): [docs/plans/2026-02-28-phant-dump-capture-implementation-plan.md](docs/plans/2026-02-28-phant-dump-capture-implementation-plan.md)
+Contributions are welcome! To get started:
 
-## Current Status (2026-03-11)
+1. Fork this repository and create a feature branch.
+2. Follow the [CONTRIBUTING guidelines](CONTRIBUTING.md) (if available).
+3. Submit a pull request with a clear description of your changes.
 
-- CLI dump capture is stable for `dump()` and `dd()` with one event per call.
-- Hook installer rewrites user prepend script at `~/.config/phant/php/phant_prepend.php` and configures CLI via `99-phant.ini` when available.
-- Valet Linux verification panel now reports FPM service wiring, active/enabled state, and recommended remediation commands.
-- Valet Linux panel includes guarded remediation apply flow (explicit confirmation required) to write FPM `99-phant.ini` and attempt service restarts.
-- PHP Manager route now renders only PHP management content; CLI Diagnostics remains in Settings.
-- Wails service boundaries are now split by capability: `SetupService` for environment/setup concerns and `PHPService` for PHP manager concerns.
-- PHP Manager backend now exposes Linux-first actions to:
-	- discover installed/available PHP versions and active version
-	- install versions via apt-based Linux package commands
-	- switch active CLI PHP via `update-alternatives` and attempt Valet switch when available
-	- read/apply managed php.ini settings for CLI + discovered FPM targets
-	- discover extensions and toggle them with `phpenmod`/`phpdismod`
+We recommend opening an issue to discuss major features or changes before submitting a PR.
+
+## Support
+
+- For help, check the [documentation](docs/) and [GitHub Discussions](https://github.com/phant-app/phant/discussions).
+- For commercial support or licensing, contact the maintainers via GitHub or the official website.
+
+## Credits
+
+Phant would not be possible without the open source community. Special thanks to:
+
+- [cpriego/valet-linux](https://github.com/cpriego/valet-linux) – inspiration and reference for Linux Valet functionality
+- [wailsapp/wails](https://github.com/wailsapp/wails) – cross-platform desktop app framework
+- All contributors and maintainers of the PHP, Laravel, and open source ecosystem
+
+## License
+
+Phant is licensed under the [Business Source License 1.1](LICENSE).
+
+✅ Free for: non-commercial use • individuals • companies with <100 employees • internal testing/dev
+💰 Official binaries with auto-updater: $9.99 at [link]
+🔓 Automatically converts to MIT License in [YEAR = release year + 5]
+
+Source available: clone, inspect, and build from source anytime.
