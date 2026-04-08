@@ -14,6 +14,10 @@ import {
     GetValetSites,
     GetValetLinuxVerification,
 } from '../bindings/phant/internal/services/setupservice';
+import {
+    GetLicenseKey,
+    SaveLicenseKey,
+} from '../bindings/phant/internal/services/licenseservice';
 
 import type {
     CollectorStatus,
@@ -37,7 +41,7 @@ import { OnboardingPage } from './pages/OnboardingPage';
 const MAX_RENDERED_EVENTS = 500;
 const ONBOARDING_COMPLETED_KEY = 'phant:onboarding:v1:completed';
 const ONBOARDING_SEEN_LEGACY_KEY = 'phant:onboarding:v1:seen';
-const LICENSE_KEY_STORAGE = 'phant:license:v1:key';
+const LEGACY_LICENSE_KEY_STORAGE = 'phant:license:v1:key';
 const ONBOARDING_PATH = '/onboarding';
 
 const isSameCollectorStatus = (
@@ -78,12 +82,51 @@ function App() {
     const [licenseKey, setLicenseKey] = useState('');
 
     useEffect(() => {
-        const completedOnboarding = window.localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true'
-            || window.localStorage.getItem(ONBOARDING_SEEN_LEGACY_KEY) === 'true';
-        const storedLicenseKey = window.localStorage.getItem(LICENSE_KEY_STORAGE) || '';
-        setOnboardingCompleted(completedOnboarding);
-        setLicenseKey(storedLicenseKey);
-        setOnboardingReady(true);
+        let disposed = false;
+
+        const loadOnboardingState = async () => {
+            const completedOnboarding = window.localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true'
+                || window.localStorage.getItem(ONBOARDING_SEEN_LEGACY_KEY) === 'true';
+
+            let resolvedLicenseKey = '';
+            try {
+                const result = await GetLicenseKey();
+                if (result.error) {
+                    console.error('Failed to load license key from backend:', result.error);
+                } else {
+                    resolvedLicenseKey = result.licenseKey || '';
+                }
+
+                if (!resolvedLicenseKey) {
+                    const legacyLicenseKey = (window.localStorage.getItem(LEGACY_LICENSE_KEY_STORAGE) || '').trim();
+                    if (legacyLicenseKey.length > 0) {
+                        const saveResult = await SaveLicenseKey(legacyLicenseKey);
+                        if (saveResult.success) {
+                            resolvedLicenseKey = saveResult.licenseKey;
+                            window.localStorage.removeItem(LEGACY_LICENSE_KEY_STORAGE);
+                        } else if (saveResult.error) {
+                            console.error('Failed to migrate legacy license key:', saveResult.error);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to initialize onboarding state:', error);
+            }
+
+            if (disposed) {
+                return;
+            }
+
+            setOnboardingCompleted(completedOnboarding);
+            setLicenseKey(resolvedLicenseKey);
+            setOnboardingReady(true);
+        };
+
+        void loadOnboardingState();
+
+        return () => {
+            disposed = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -258,12 +301,18 @@ function App() {
 
     const saveLicenseFromOnboarding = () => {
         const normalized = licenseKey.trim();
-        if (normalized.length === 0) {
-            window.localStorage.removeItem(LICENSE_KEY_STORAGE);
-            return;
-        }
-
-        window.localStorage.setItem(LICENSE_KEY_STORAGE, normalized);
+        void (async () => {
+            try {
+                const result = await SaveLicenseKey(normalized);
+                if (result.error) {
+                    console.error('Failed to save license key:', result.error);
+                    return;
+                }
+                setLicenseKey(result.licenseKey);
+            } catch (error) {
+                console.error('Failed to save license key:', error);
+            }
+        })();
     };
 
     const runHookSetupFromOnboarding = async () => {
