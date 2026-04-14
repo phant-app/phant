@@ -177,3 +177,25 @@ export type ServicesStatusSnapshot = {
     warnings: string[];
     lastError: string;
 };
+
+export type UpdateCheckResult = {
+    currentVersion: string;
+    latestVersion: string;
+    updateAvailable: boolean;
+    downloadURL: string;
+    notes: string;
+    error: string;
+};
+
+export type UpdateDownloadResult = {
+    currentVersion: string;
+    latestVersion: string;
+    updateAvailable: boolean;
+    downloaded: boolean;
+    filePath: string;
+    finalURL: string;
+    statusCode: number;
+    bytesWritten: number;
+    notes: string;
+    error: string;
+};

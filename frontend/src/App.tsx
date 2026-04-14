@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BaseLayout } from './components/layout/BaseLayout';
 import { Events } from '@wailsio/runtime';
+import { toast } from "sonner";
 import {
     DumpEventChannelName,
     GetCollectorStatus,
@@ -18,12 +19,19 @@ import {
     GetLicenseKey,
     SaveLicenseKey,
 } from '../bindings/phant/internal/services/licenseservice';
+import {
+    CheckForUpdate,
+    CurrentVersion,
+    DownloadLatest,
+} from '../bindings/phant/internal/services/updateservice';
 
 import type {
     CollectorStatus,
     DumpEvent,
     HookInstallResult,
     SetupDiagnostics,
+    UpdateCheckResult,
+    UpdateDownloadResult,
     ValetSitesResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
@@ -80,6 +88,10 @@ function App() {
     const [onboardingReady, setOnboardingReady] = useState(false);
     const [onboardingCompleted, setOnboardingCompleted] = useState(false);
     const [licenseKey, setLicenseKey] = useState('');
+    const [updateStatus, setUpdateStatus] = useState<UpdateCheckResult | null>(null);
+    const [updateDownloadResult, setUpdateDownloadResult] = useState<UpdateDownloadResult | null>(null);
+    const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+    const [downloadingUpdate, setDownloadingUpdate] = useState(false);
 
     useEffect(() => {
         let disposed = false;
@@ -128,6 +140,68 @@ function App() {
             disposed = true;
         };
     }, []);
+
+    const checkForUpdates = async (silent = false) => {
+        setCheckingForUpdates(true);
+        try {
+            const [currentVersion, checkResult] = await Promise.all([
+                CurrentVersion(),
+                CheckForUpdate(""),
+            ]);
+            const normalized: UpdateCheckResult = {
+                currentVersion: checkResult.currentVersion || currentVersion || "unknown",
+                latestVersion: checkResult.latestVersion || "",
+                updateAvailable: Boolean(checkResult.updateAvailable),
+                downloadURL: checkResult.downloadURL || "",
+                notes: checkResult.notes || "",
+                error: checkResult.error || "",
+            };
+            setUpdateStatus(normalized);
+
+            if (!silent) {
+                if (normalized.error) {
+                    toast.error(normalized.error);
+                } else if (normalized.updateAvailable) {
+                    toast.info(`New update available: ${normalized.latestVersion}`);
+                } else {
+                    toast.success("Phant is up to date.");
+                }
+            } else if (!normalized.error && normalized.updateAvailable) {
+                toast.info(`New update available: ${normalized.latestVersion}`);
+            }
+        } finally {
+            setCheckingForUpdates(false);
+        }
+    };
+
+    const downloadUpdate = async () => {
+        setDownloadingUpdate(true);
+        try {
+            const result = await DownloadLatest("");
+            const normalized: UpdateDownloadResult = {
+                currentVersion: result.currentVersion || "",
+                latestVersion: result.latestVersion || "",
+                updateAvailable: Boolean(result.updateAvailable),
+                downloaded: Boolean(result.downloaded),
+                filePath: result.filePath || "",
+                finalURL: result.finalURL || "",
+                statusCode: result.statusCode || 0,
+                bytesWritten: result.bytesWritten || 0,
+                notes: result.notes || "",
+                error: result.error || "",
+            };
+            setUpdateDownloadResult(normalized);
+            if (normalized.error) {
+                toast.error(normalized.error);
+            } else if (normalized.downloaded) {
+                toast.success("Update downloaded. Restart after replacing the executable.");
+            } else {
+                toast.info("No new update to download.");
+            }
+        } finally {
+            setDownloadingUpdate(false);
+        }
+    };
 
     useEffect(() => {
         if (!onboardingReady) {
@@ -331,6 +405,13 @@ function App() {
         }
     };
 
+    useEffect(() => {
+        if (!onboardingReady || !onboardingCompleted) {
+            return;
+        }
+        void checkForUpdates(true);
+    }, [onboardingReady, onboardingCompleted]);
+
     if (!onboardingReady) {
         return null;
     }
@@ -408,6 +489,12 @@ function App() {
                             licenseKey={licenseKey}
                             onLicenseKeyChange={setLicenseKey}
                             onSaveLicense={saveLicenseFromOnboarding}
+                            updateStatus={updateStatus}
+                            updateDownloadResult={updateDownloadResult}
+                            checkingForUpdates={checkingForUpdates}
+                            downloadingUpdate={downloadingUpdate}
+                            onCheckForUpdates={() => { void checkForUpdates(false); }}
+                            onDownloadUpdate={() => { void downloadUpdate(); }}
                             valetVerification={valetVerification}
                             refreshingValet={refreshingValet}
                             onRefreshValet={refreshValetVerification}

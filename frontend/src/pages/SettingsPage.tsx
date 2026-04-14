@@ -9,6 +9,8 @@ import { ValetPage } from "@/pages/ValetPage";
 import type {
     HookInstallResult,
     SetupDiagnostics,
+    UpdateCheckResult,
+    UpdateDownloadResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
 } from "@/types";
@@ -22,6 +24,11 @@ export function SettingsPage({
     licenseKey,
     onLicenseKeyChange,
     onSaveLicense,
+    updateStatus,
+    checkingForUpdates,
+    downloadingUpdate,
+    onCheckForUpdates,
+    onDownloadUpdate,
     valetVerification,
     refreshingValet,
     onRefreshValet,
@@ -30,6 +37,7 @@ export function SettingsPage({
     applyingValetRemediation,
     onApplyValetRemediation,
     valetRemediationResult,
+    updateDownloadResult,
 }: {
     diagnostics: SetupDiagnostics | null;
     hookResult: HookInstallResult | null;
@@ -39,6 +47,11 @@ export function SettingsPage({
     licenseKey: string;
     onLicenseKeyChange: (value: string) => void;
     onSaveLicense: () => void;
+    updateStatus: UpdateCheckResult | null;
+    checkingForUpdates: boolean;
+    downloadingUpdate: boolean;
+    onCheckForUpdates: () => void;
+    onDownloadUpdate: () => void;
     valetVerification: ValetLinuxVerification | null;
     refreshingValet: boolean;
     onRefreshValet: () => void;
@@ -47,6 +60,7 @@ export function SettingsPage({
     applyingValetRemediation: boolean;
     onApplyValetRemediation: () => void;
     valetRemediationResult: ValetLinuxRemediationResult | null;
+    updateDownloadResult: UpdateDownloadResult | null;
 }) {
     const { theme, setTheme } = useTheme();
 
@@ -118,6 +132,48 @@ export function SettingsPage({
                         Integrations are optional connections (for example editors, notifications, or tunnel/share tools).
                         This section is reserved for upcoming integration toggles.
                     </p>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Updates</CardTitle>
+                    <CardDescription>Check for new releases and fetch the latest Linux AppImage.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={onCheckForUpdates} disabled={checkingForUpdates}>
+                            {checkingForUpdates ? "Checking..." : "Check for updates"}
+                        </Button>
+                        <Button onClick={onDownloadUpdate} disabled={downloadingUpdate || !updateStatus?.updateAvailable}>
+                            {downloadingUpdate ? "Downloading..." : "Download latest"}
+                        </Button>
+                    </div>
+
+                    {updateStatus?.error ? (
+                        <p className="text-sm text-destructive">{updateStatus.error}</p>
+                    ) : null}
+
+                    {updateStatus && !updateStatus.error ? (
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>Current version: {updateStatus.currentVersion || "unknown"}</p>
+                            <p>Latest version: {updateStatus.latestVersion || "unknown"}</p>
+                            <p>Status: {updateStatus.updateAvailable ? "Update available" : "Up to date"}</p>
+                            {updateStatus.notes ? <p>Notes: {updateStatus.notes}</p> : null}
+                        </div>
+                    ) : null}
+
+                    {updateDownloadResult?.error ? (
+                        <p className="text-sm text-destructive">{updateDownloadResult.error}</p>
+                    ) : null}
+
+                    {updateDownloadResult?.downloaded ? (
+                        <div className="space-y-1 text-sm text-emerald-500">
+                            <p>Update downloaded successfully.</p>
+                            <p className="text-muted-foreground">File: {updateDownloadResult.filePath}</p>
+                            <p className="text-muted-foreground">Bytes: {updateDownloadResult.bytesWritten}</p>
+                        </div>
+                    ) : null}
                 </CardContent>
             </Card>
 
