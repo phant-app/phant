@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"runtime"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ func NewUpdateService() *UpdateService {
 
 	return &UpdateService{service: appupdate.NewService(appupdate.Dependencies{
 		CurrentVersion: func() string { return BuildVersion },
+		Platform:       func() string { return runtime.GOOS },
 		GetLicenseKey:  licenseService.GetKey,
 		HTTPClient:     updateProvider.HTTPClient,
 	})}

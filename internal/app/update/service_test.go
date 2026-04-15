@@ -38,6 +38,7 @@ func TestServiceCheckForUpdate(t *testing.T) {
 
 func TestServiceDownloadLatestFollowsRedirectWithLicense(t *testing.T) {
 	const expectedLicense = "PHANT-KEY-1234"
+	const expectedPlatform = "linux"
 	var server *httptest.Server
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -46,6 +47,10 @@ func TestServiceDownloadLatestFollowsRedirectWithLicense(t *testing.T) {
 		case "/download":
 			if r.Header.Get("X-Phant-License") != expectedLicense {
 				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			if r.Header.Get("X-Phant-Platform") != expectedPlatform {
+				http.Error(w, "missing platform header", http.StatusBadRequest)
 				return
 			}
 			http.Redirect(w, r, "/artifact", http.StatusFound)
@@ -59,6 +64,7 @@ func TestServiceDownloadLatestFollowsRedirectWithLicense(t *testing.T) {
 
 	svc := NewService(Dependencies{
 		CurrentVersion: func() string { return "1.0.0" },
+		Platform:       func() string { return "linux" },
 		GetLicenseKey: func(context.Context) domainlicense.KeyResult {
 			return domainlicense.KeyResult{LicenseKey: expectedLicense}
 		},

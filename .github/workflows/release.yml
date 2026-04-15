@@ -32,8 +32,11 @@ jobs:
                   go install github.com/wailsapp/wails/v3/cmd/wails3@latest
                   echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-            - name: Build Wails app (Linux amd64)
-              run: wails3 task linux:build ARCH=amd64 VERSION=${{ github.ref_name }}
+            - name: Build AppImage (Linux x86_64)
+              run: wails3 task linux:create:appimage VERSION=${{ github.ref_name }}
+
+            - name: Remove intermediate standalone binary
+              run: rm -f bin/phant
 
             - name: Upload to R2
               env:
@@ -41,12 +44,12 @@ jobs:
                   AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
                   AWS_DEFAULT_REGION: auto
               run: |
-                  # 1. Upload the permanent archived version (e.g., phant-v1.0.0)
-                  aws s3 cp bin/phant s3://phant-releases/phant-${{ github.ref_name }}.AppImage \
+                  # 1. Upload the permanent archived version
+                  aws s3 cp bin/phant-${{ github.ref_name }}-x86_64.AppImage s3://phant-releases/phant-${{ github.ref_name }}-x86_64.AppImage \
                     --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
 
                   # 2. Copy it to 'latest' so your Worker can easily serve it
-                  aws s3 cp s3://phant-releases/phant-${{ github.ref_name }} s3://phant-releases/phant-latest \
+                  aws s3 cp s3://phant-releases/phant-${{ github.ref_name }}-x86_64.AppImage s3://phant-releases/phant-latest-x86_64.AppImage \
                     --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
             - name: Checkout website repository
               uses: actions/checkout@v4

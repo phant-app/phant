@@ -14,10 +14,11 @@ import (
 	domainupdate "phant/internal/domain/update"
 )
 
-const DefaultManifestURL = "https://phant.app/update.json"
+const DefaultManifestURL = "https://phant-app.github.io/update.json"
 
 type Dependencies struct {
 	CurrentVersion func() string
+	Platform       func() string
 	GetLicenseKey  func(context.Context) domainlicense.KeyResult
 	HTTPClient     func() *http.Client
 }
@@ -29,6 +30,9 @@ type Service struct {
 func NewService(deps Dependencies) *Service {
 	if deps.CurrentVersion == nil {
 		deps.CurrentVersion = func() string { return "" }
+	}
+	if deps.Platform == nil {
+		deps.Platform = func() string { return "" }
 	}
 	if deps.HTTPClient == nil {
 		deps.HTTPClient = func() *http.Client { return &http.Client{} }
@@ -125,6 +129,9 @@ func (s *Service) DownloadLatest(ctx context.Context, manifestURL string) domain
 		}
 	}
 	req.Header.Set("X-Phant-License", licenseResult.LicenseKey)
+	if platform := strings.TrimSpace(s.deps.Platform()); platform != "" {
+		req.Header.Set("X-Phant-Platform", strings.ToLower(platform))
+	}
 
 	resp, err := s.deps.HTTPClient().Do(req)
 	if err != nil {
