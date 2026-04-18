@@ -11,6 +11,7 @@ import type {
     SetupDiagnostics,
     UpdateCheckResult,
     UpdateDownloadResult,
+    UpdateInstallResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
 } from "@/types";
@@ -27,8 +28,10 @@ export function SettingsPage({
     updateStatus,
     checkingForUpdates,
     downloadingUpdate,
+    installingUpdate,
     onCheckForUpdates,
     onDownloadUpdate,
+    onInstallUpdate,
     valetVerification,
     refreshingValet,
     onRefreshValet,
@@ -38,6 +41,7 @@ export function SettingsPage({
     onApplyValetRemediation,
     valetRemediationResult,
     updateDownloadResult,
+    updateInstallResult,
 }: {
     diagnostics: SetupDiagnostics | null;
     hookResult: HookInstallResult | null;
@@ -50,8 +54,10 @@ export function SettingsPage({
     updateStatus: UpdateCheckResult | null;
     checkingForUpdates: boolean;
     downloadingUpdate: boolean;
+    installingUpdate: boolean;
     onCheckForUpdates: () => void;
     onDownloadUpdate: () => void;
+    onInstallUpdate: () => void;
     valetVerification: ValetLinuxVerification | null;
     refreshingValet: boolean;
     onRefreshValet: () => void;
@@ -61,6 +67,7 @@ export function SettingsPage({
     onApplyValetRemediation: () => void;
     valetRemediationResult: ValetLinuxRemediationResult | null;
     updateDownloadResult: UpdateDownloadResult | null;
+    updateInstallResult: UpdateInstallResult | null;
 }) {
     const { theme, setTheme } = useTheme();
 
@@ -148,6 +155,13 @@ export function SettingsPage({
                         <Button onClick={onDownloadUpdate} disabled={downloadingUpdate || !updateStatus?.updateAvailable}>
                             {downloadingUpdate ? "Downloading..." : "Download latest"}
                         </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={onInstallUpdate}
+                            disabled={installingUpdate || !updateDownloadResult?.downloaded || !updateDownloadResult.filePath}
+                        >
+                            {installingUpdate ? "Installing..." : "Install & restart"}
+                        </Button>
                     </div>
 
                     {updateStatus?.error ? (
@@ -172,6 +186,19 @@ export function SettingsPage({
                             <p>Update downloaded successfully.</p>
                             <p className="text-muted-foreground">File: {updateDownloadResult.filePath}</p>
                             <p className="text-muted-foreground">Bytes: {updateDownloadResult.bytesWritten}</p>
+                        </div>
+                    ) : null}
+
+                    {updateInstallResult?.error ? (
+                        <p className="text-sm text-destructive">{updateInstallResult.error}</p>
+                    ) : null}
+
+                    {updateInstallResult?.installed ? (
+                        <div className="space-y-1 text-sm text-emerald-500">
+                            <p>{updateInstallResult.message || "Update installation started."}</p>
+                            {updateInstallResult.targetPath ? (
+                                <p className="text-muted-foreground">Target: {updateInstallResult.targetPath}</p>
+                            ) : null}
                         </div>
                     ) : null}
                 </CardContent>

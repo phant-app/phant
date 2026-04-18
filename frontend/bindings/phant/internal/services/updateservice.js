@@ -37,6 +37,17 @@ export function DownloadLatest(manifestURL) {
     }));
 }
 
+/**
+ * @param {string} downloadedPath
+ * @returns {$CancellablePromise<update$0.InstallResult>}
+ */
+export function InstallDownloaded(downloadedPath) {
+    return $Call.ByID(3146719909, downloadedPath).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = update$0.CheckResult.createFrom;
 const $$createType1 = update$0.DownloadResult.createFrom;
+const $$createType2 = update$0.InstallResult.createFrom;

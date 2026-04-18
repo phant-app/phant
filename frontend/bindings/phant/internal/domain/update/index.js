@@ -4,5 +4,6 @@
 
 export {
     CheckResult,
-    DownloadResult
+    DownloadResult,
+    InstallResult
 } from "./models.js";

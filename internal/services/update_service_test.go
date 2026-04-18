@@ -125,3 +125,17 @@ func TestUpdateServiceDownloadLatestRequiresLicense(t *testing.T) {
 		t.Fatalf("DownloadLatest(...) expected license key error")
 	}
 }
+
+func TestUpdateServiceInstallDownloadedMissingFile(t *testing.T) {
+	originalVersion := BuildVersion
+	BuildVersion = "1.0.0"
+	t.Cleanup(func() {
+		BuildVersion = originalVersion
+	})
+
+	service := NewUpdateService()
+	result := service.InstallDownloaded("/tmp/phant-update.AppImage")
+	if result.Error == "" {
+		t.Fatalf("InstallDownloaded(...) expected missing file error")
+	}
+}

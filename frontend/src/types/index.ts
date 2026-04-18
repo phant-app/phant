@@ -199,3 +199,10 @@ export type UpdateDownloadResult = {
     notes: string;
     error: string;
 };
+
+export type UpdateInstallResult = {
+    installed: boolean;
+    targetPath: string;
+    message: string;
+    error: string;
+};

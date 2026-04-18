@@ -17,10 +17,11 @@ import (
 const DefaultManifestURL = "https://phant-app.github.io/update.json"
 
 type Dependencies struct {
-	CurrentVersion func() string
-	Platform       func() string
-	GetLicenseKey  func(context.Context) domainlicense.KeyResult
-	HTTPClient     func() *http.Client
+	CurrentVersion    func() string
+	Platform          func() string
+	GetLicenseKey     func(context.Context) domainlicense.KeyResult
+	HTTPClient        func() *http.Client
+	InstallDownloaded func(context.Context, string) domainupdate.InstallResult
 }
 
 type Service struct {
@@ -210,6 +211,13 @@ func (s *Service) DownloadLatest(ctx context.Context, manifestURL string) domain
 		BytesWritten:    written,
 		Notes:           check.Notes,
 	}
+}
+
+func (s *Service) InstallDownloaded(ctx context.Context, downloadedPath string) domainupdate.InstallResult {
+	if s.deps.InstallDownloaded == nil {
+		return domainupdate.InstallResult{Error: "update installer is unavailable"}
+	}
+	return s.deps.InstallDownloaded(ctx, downloadedPath)
 }
 
 func (s *Service) fetchManifest(ctx context.Context, manifestURL string) (domainupdate.Manifest, error) {

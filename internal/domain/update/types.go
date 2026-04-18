@@ -27,3 +27,10 @@ type DownloadResult struct {
 	Notes           string `json:"notes"`
 	Error           string `json:"error"`
 }
+
+type InstallResult struct {
+	Installed  bool   `json:"installed"`
+	TargetPath string `json:"targetPath"`
+	Message    string `json:"message"`
+	Error      string `json:"error"`
+}

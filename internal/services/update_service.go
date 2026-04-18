@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"runtime"
 	"strings"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	appupdate "phant/internal/app/update"
 	domainupdate "phant/internal/domain/update"
 	settingsinfra "phant/internal/infra/settings"
+	"phant/internal/infra/system"
 	updateinfra "phant/internal/infra/update"
 )
 
@@ -27,13 +27,14 @@ func NewUpdateService() *UpdateService {
 		LoadSettings: settingsProvider.Load,
 		SaveSettings: settingsProvider.Save,
 	})
-	updateProvider := updateinfra.NewProviderForCurrentOS()
+	updateProvider := updateinfra.NewProviderForCurrentOS(system.NewExecRunner())
 
 	return &UpdateService{service: appupdate.NewService(appupdate.Dependencies{
-		CurrentVersion: func() string { return BuildVersion },
-		Platform:       func() string { return runtime.GOOS },
-		GetLicenseKey:  licenseService.GetKey,
-		HTTPClient:     updateProvider.HTTPClient,
+		CurrentVersion:    func() string { return BuildVersion },
+		Platform:          updateProvider.Platform,
+		GetLicenseKey:     licenseService.GetKey,
+		HTTPClient:        updateProvider.HTTPClient,
+		InstallDownloaded: updateProvider.InstallDownloaded,
 	})}
 }
 
@@ -51,6 +52,12 @@ func (s *UpdateService) DownloadLatest(manifestURL string) domainupdate.Download
 	ctx, cancel := context.WithTimeout(context.Background(), updateServiceTimeout)
 	defer cancel()
 	return s.service.DownloadLatest(ctx, manifestURL)
+}
+
+func (s *UpdateService) InstallDownloaded(downloadedPath string) domainupdate.InstallResult {
+	ctx, cancel := context.WithTimeout(context.Background(), updateServiceTimeout)
+	defer cancel()
+	return s.service.InstallDownloaded(ctx, downloadedPath)
 }
 
 func normalizeVersion(v string) string {

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	domainlicense "phant/internal/domain/license"
+	domainupdate "phant/internal/domain/update"
 )
 
 func TestServiceCheckForUpdate(t *testing.T) {
@@ -89,5 +90,39 @@ func TestServiceDownloadLatestFollowsRedirectWithLicense(t *testing.T) {
 	t.Cleanup(func() { _ = os.Remove(result.FilePath) })
 	if string(data) != "appimage-bytes" {
 		t.Fatalf("downloaded content = %q, want %q", string(data), "appimage-bytes")
+	}
+}
+
+func TestServiceInstallDownloadedLinux(t *testing.T) {
+	var receivedPath string
+	svc := NewService(Dependencies{
+		InstallDownloaded: func(_ context.Context, path string) domainupdate.InstallResult {
+			receivedPath = path
+			return domainupdate.InstallResult{
+				Installed:  true,
+				TargetPath: "/opt/phant/phant.AppImage",
+				Message:    "ok",
+			}
+		},
+	})
+
+	result := svc.InstallDownloaded(context.Background(), "/tmp/update.AppImage")
+	if result.Error != "" {
+		t.Fatalf("InstallDownloaded(...) error = %q", result.Error)
+	}
+	if !result.Installed {
+		t.Fatalf("InstallDownloaded(...) installed = false, want true")
+	}
+	if receivedPath != "/tmp/update.AppImage" {
+		t.Fatalf("InstallDownloaded(...) forwarded path = %q, want %q", receivedPath, "/tmp/update.AppImage")
+	}
+}
+
+func TestServiceInstallDownloadedRejectsNonLinux(t *testing.T) {
+	svc := NewService(Dependencies{})
+
+	result := svc.InstallDownloaded(context.Background(), "/tmp/update.AppImage")
+	if result.Error == "" {
+		t.Fatalf("InstallDownloaded(...) expected unavailable installer error")
 	}
 }

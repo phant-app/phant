@@ -159,3 +159,52 @@ export class DownloadResult {
         return new DownloadResult(/** @type {Partial<DownloadResult>} */($$parsedSource));
     }
 }
+
+export class InstallResult {
+    /**
+     * Creates a new InstallResult instance.
+     * @param {Partial<InstallResult>} [$$source = {}] - The source object to create the InstallResult.
+     */
+    constructor($$source = {}) {
+        if (!("installed" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["installed"] = false;
+        }
+        if (!("targetPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["targetPath"] = "";
+        }
+        if (!("message" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["message"] = "";
+        }
+        if (!("error" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["error"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new InstallResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {InstallResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new InstallResult(/** @type {Partial<InstallResult>} */($$parsedSource));
+    }
+}

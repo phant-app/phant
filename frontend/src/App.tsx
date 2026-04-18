@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BaseLayout } from './components/layout/BaseLayout';
-import { Events } from '@wailsio/runtime';
+import { Application, Events } from '@wailsio/runtime';
 import { toast } from "sonner";
 import {
     DumpEventChannelName,
@@ -23,6 +23,7 @@ import {
     CheckForUpdate,
     CurrentVersion,
     DownloadLatest,
+    InstallDownloaded,
 } from '../bindings/phant/internal/services/updateservice';
 
 import type {
@@ -32,6 +33,7 @@ import type {
     SetupDiagnostics,
     UpdateCheckResult,
     UpdateDownloadResult,
+    UpdateInstallResult,
     ValetSitesResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
@@ -92,6 +94,8 @@ function App() {
     const [updateDownloadResult, setUpdateDownloadResult] = useState<UpdateDownloadResult | null>(null);
     const [checkingForUpdates, setCheckingForUpdates] = useState(false);
     const [downloadingUpdate, setDownloadingUpdate] = useState(false);
+    const [installingUpdate, setInstallingUpdate] = useState(false);
+    const [updateInstallResult, setUpdateInstallResult] = useState<UpdateInstallResult | null>(null);
 
     useEffect(() => {
         let disposed = false;
@@ -191,15 +195,47 @@ function App() {
                 error: result.error || "",
             };
             setUpdateDownloadResult(normalized);
+            setUpdateInstallResult(null);
             if (normalized.error) {
                 toast.error(normalized.error);
             } else if (normalized.downloaded) {
-                toast.success("Update downloaded. Restart after replacing the executable.");
+                toast.success("Update downloaded. Click Install & restart to apply.");
             } else {
                 toast.info("No new update to download.");
             }
         } finally {
             setDownloadingUpdate(false);
+        }
+    };
+
+    const installDownloadedUpdate = async () => {
+        if (!updateDownloadResult?.downloaded || !updateDownloadResult.filePath) {
+            toast.info("Download an update before installing.");
+            return;
+        }
+        setInstallingUpdate(true);
+        try {
+            const result = await InstallDownloaded(updateDownloadResult.filePath);
+            const normalized: UpdateInstallResult = {
+                installed: Boolean(result.installed),
+                targetPath: result.targetPath || "",
+                message: result.message || "",
+                error: result.error || "",
+            };
+            setUpdateInstallResult(normalized);
+
+            if (normalized.error) {
+                toast.error(normalized.error);
+                return;
+            }
+            if (normalized.installed) {
+                toast.success(normalized.message || "Installing update and restarting Phant...");
+                await Application.Quit();
+                return;
+            }
+            toast.info("Install did not start.");
+        } finally {
+            setInstallingUpdate(false);
         }
     };
 
@@ -491,10 +527,13 @@ function App() {
                             onSaveLicense={saveLicenseFromOnboarding}
                             updateStatus={updateStatus}
                             updateDownloadResult={updateDownloadResult}
+                            updateInstallResult={updateInstallResult}
                             checkingForUpdates={checkingForUpdates}
                             downloadingUpdate={downloadingUpdate}
+                            installingUpdate={installingUpdate}
                             onCheckForUpdates={() => { void checkForUpdates(false); }}
                             onDownloadUpdate={() => { void downloadUpdate(); }}
+                            onInstallUpdate={() => { void installDownloadedUpdate(); }}
                             valetVerification={valetVerification}
                             refreshingValet={refreshingValet}
                             onRefreshValet={refreshValetVerification}
