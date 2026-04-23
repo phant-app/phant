@@ -61,6 +61,56 @@ func TestProviderInstallDownloadedStartsInstaller(t *testing.T) {
 	}
 }
 
+func TestProviderInstallDownloadedUsesAppImageEnvWhenMounted(t *testing.T) {
+	updateFile := filepath.Join(t.TempDir(), "phant-update.AppImage")
+	if err := os.WriteFile(updateFile, []byte("new-appimage"), 0o755); err != nil {
+		t.Fatalf("write update file: %v", err)
+	}
+	installedAppImage := filepath.Join(t.TempDir(), "phant-current.AppImage")
+	if err := os.WriteFile(installedAppImage, []byte("current-appimage"), 0o755); err != nil {
+		t.Fatalf("write installed appimage: %v", err)
+	}
+
+	runner := &fakeRunner{goos: "linux"}
+	provider := NewProvider(runner)
+	provider.executablePath = func() (string, error) {
+		return "/tmp/.mount_phant-abcd/usr/bin/phant", nil
+	}
+	provider.getEnv = func(key string) string {
+		if key == "APPIMAGE" {
+			return installedAppImage
+		}
+		return ""
+	}
+
+	result := provider.InstallDownloaded(context.Background(), updateFile)
+	if result.Error != "" {
+		t.Fatalf("InstallDownloaded(...) error = %q", result.Error)
+	}
+	if result.TargetPath != installedAppImage {
+		t.Fatalf("InstallDownloaded(...) targetPath = %q, want %q", result.TargetPath, installedAppImage)
+	}
+}
+
+func TestProviderInstallDownloadedMountedWithoutAppImageEnv(t *testing.T) {
+	updateFile := filepath.Join(t.TempDir(), "phant-update.AppImage")
+	if err := os.WriteFile(updateFile, []byte("new-appimage"), 0o755); err != nil {
+		t.Fatalf("write update file: %v", err)
+	}
+
+	runner := &fakeRunner{goos: "linux"}
+	provider := NewProvider(runner)
+	provider.executablePath = func() (string, error) {
+		return "/tmp/.mount_phant-abcd/usr/bin/phant", nil
+	}
+	provider.getEnv = func(string) string { return "" }
+
+	result := provider.InstallDownloaded(context.Background(), updateFile)
+	if result.Error == "" {
+		t.Fatalf("InstallDownloaded(...) expected APPIMAGE path error")
+	}
+}
+
 func TestProviderInstallDownloadedRejectsNonLinux(t *testing.T) {
 	updateFile := filepath.Join(t.TempDir(), "phant-update.AppImage")
 	if err := os.WriteFile(updateFile, []byte("new-appimage"), 0o755); err != nil {

@@ -14,14 +14,18 @@ import (
 )
 
 type Provider struct {
-	runner system.Runner
-	client *http.Client
+	runner         system.Runner
+	client         *http.Client
+	executablePath func() (string, error)
+	getEnv         func(string) string
 }
 
 func NewProvider(runner system.Runner) *Provider {
 	return &Provider{
-		runner: runner,
-		client: &http.Client{Timeout: 30 * time.Second},
+		runner:         runner,
+		client:         &http.Client{Timeout: 30 * time.Second},
+		executablePath: os.Executable,
+		getEnv:         os.Getenv,
 	}
 }
 
@@ -54,13 +58,13 @@ func (p *Provider) InstallDownloaded(ctx context.Context, downloadedPath string)
 		return domainupdate.InstallResult{Error: "downloaded update path must be a file"}
 	}
 
-	currentExecutable, err := os.Executable()
+	currentExecutable, err := p.executablePath()
 	if err != nil {
 		return domainupdate.InstallResult{Error: fmt.Sprintf("resolve current executable path: %v", err)}
 	}
-	currentPath, err := filepath.Abs(currentExecutable)
+	currentPath, err := p.resolveInstallTargetPath(currentExecutable)
 	if err != nil {
-		return domainupdate.InstallResult{Error: fmt.Sprintf("resolve current executable path: %v", err)}
+		return domainupdate.InstallResult{Error: err.Error()}
 	}
 	if sourcePath == currentPath {
 		return domainupdate.InstallResult{Error: "downloaded file matches current executable path"}
@@ -92,6 +96,38 @@ func (p *Provider) InstallDownloaded(ctx context.Context, downloadedPath string)
 		TargetPath: currentPath,
 		Message:    "Update install started. Phant will restart automatically.",
 	}
+}
+
+func (p *Provider) resolveInstallTargetPath(currentExecutable string) (string, error) {
+	currentPath, err := filepath.Abs(currentExecutable)
+	if err != nil {
+		return "", fmt.Errorf("resolve current executable path: %v", err)
+	}
+	if !isMountedAppImagePath(currentPath) {
+		return currentPath, nil
+	}
+
+	appImagePath := strings.TrimSpace(p.getEnv("APPIMAGE"))
+	if appImagePath == "" {
+		return "", fmt.Errorf("unable to resolve writable AppImage path: APPIMAGE environment variable is empty")
+	}
+	resolvedAppImagePath, err := filepath.Abs(appImagePath)
+	if err != nil {
+		return "", fmt.Errorf("resolve APPIMAGE path: %v", err)
+	}
+	info, err := os.Stat(resolvedAppImagePath)
+	if err != nil {
+		return "", fmt.Errorf("read APPIMAGE path: %v", err)
+	}
+	if info.IsDir() {
+		return "", fmt.Errorf("APPIMAGE path must be a file")
+	}
+
+	return resolvedAppImagePath, nil
+}
+
+func isMountedAppImagePath(path string) bool {
+	return strings.HasPrefix(path, "/tmp/.mount_")
 }
 
 func shellSingleQuote(value string) string {
