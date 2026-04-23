@@ -9,7 +9,8 @@ includes:
   android: ./build/android/Taskfile.yml
 
 vars:
-  APP_NAME: "wails3d"
+  APP_NAME: "phant"
+  VERSION: '{{.VERSION | default "0.0.1"}}'
   BIN_DIR: "bin"
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
 

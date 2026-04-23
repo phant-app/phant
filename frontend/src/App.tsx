@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BaseLayout } from './components/layout/BaseLayout';
-import { Events } from '@wailsio/runtime';
+import { Application, Events } from '@wailsio/runtime';
+import { toast } from "sonner";
 import {
     DumpEventChannelName,
     GetCollectorStatus,
@@ -14,12 +15,25 @@ import {
     GetValetSites,
     GetValetLinuxVerification,
 } from '../bindings/phant/internal/services/setupservice';
+import {
+    GetLicenseKey,
+    SaveLicenseKey,
+} from '../bindings/phant/internal/services/licenseservice';
+import {
+    CheckForUpdate,
+    CurrentVersion,
+    DownloadLatest,
+    InstallDownloaded,
+} from '../bindings/phant/internal/services/updateservice';
 
 import type {
     CollectorStatus,
     DumpEvent,
     HookInstallResult,
     SetupDiagnostics,
+    UpdateCheckResult,
+    UpdateDownloadResult,
+    UpdateInstallResult,
     ValetSitesResult,
     ValetLinuxRemediationResult,
     ValetLinuxVerification,
@@ -37,7 +51,7 @@ import { OnboardingPage } from './pages/OnboardingPage';
 const MAX_RENDERED_EVENTS = 500;
 const ONBOARDING_COMPLETED_KEY = 'phant:onboarding:v1:completed';
 const ONBOARDING_SEEN_LEGACY_KEY = 'phant:onboarding:v1:seen';
-const LICENSE_KEY_STORAGE = 'phant:license:v1:key';
+const LEGACY_LICENSE_KEY_STORAGE = 'phant:license:v1:key';
 const ONBOARDING_PATH = '/onboarding';
 
 const isSameCollectorStatus = (
@@ -76,15 +90,154 @@ function App() {
     const [onboardingReady, setOnboardingReady] = useState(false);
     const [onboardingCompleted, setOnboardingCompleted] = useState(false);
     const [licenseKey, setLicenseKey] = useState('');
+    const [updateStatus, setUpdateStatus] = useState<UpdateCheckResult | null>(null);
+    const [updateDownloadResult, setUpdateDownloadResult] = useState<UpdateDownloadResult | null>(null);
+    const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+    const [downloadingUpdate, setDownloadingUpdate] = useState(false);
+    const [installingUpdate, setInstallingUpdate] = useState(false);
+    const [updateInstallResult, setUpdateInstallResult] = useState<UpdateInstallResult | null>(null);
 
     useEffect(() => {
-        const completedOnboarding = window.localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true'
-            || window.localStorage.getItem(ONBOARDING_SEEN_LEGACY_KEY) === 'true';
-        const storedLicenseKey = window.localStorage.getItem(LICENSE_KEY_STORAGE) || '';
-        setOnboardingCompleted(completedOnboarding);
-        setLicenseKey(storedLicenseKey);
-        setOnboardingReady(true);
+        let disposed = false;
+
+        const loadOnboardingState = async () => {
+            const completedOnboarding = window.localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true'
+                || window.localStorage.getItem(ONBOARDING_SEEN_LEGACY_KEY) === 'true';
+
+            let resolvedLicenseKey = '';
+            try {
+                const result = await GetLicenseKey();
+                if (result.error) {
+                    console.error('Failed to load license key from backend:', result.error);
+                } else {
+                    resolvedLicenseKey = result.licenseKey || '';
+                }
+
+                if (!resolvedLicenseKey) {
+                    const legacyLicenseKey = (window.localStorage.getItem(LEGACY_LICENSE_KEY_STORAGE) || '').trim();
+                    if (legacyLicenseKey.length > 0) {
+                        const saveResult = await SaveLicenseKey(legacyLicenseKey);
+                        if (saveResult.success) {
+                            resolvedLicenseKey = saveResult.licenseKey;
+                            window.localStorage.removeItem(LEGACY_LICENSE_KEY_STORAGE);
+                        } else if (saveResult.error) {
+                            console.error('Failed to migrate legacy license key:', saveResult.error);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to initialize onboarding state:', error);
+            }
+
+            if (disposed) {
+                return;
+            }
+
+            setOnboardingCompleted(completedOnboarding);
+            setLicenseKey(resolvedLicenseKey);
+            setOnboardingReady(true);
+        };
+
+        void loadOnboardingState();
+
+        return () => {
+            disposed = true;
+        };
     }, []);
+
+    const checkForUpdates = async (silent = false) => {
+        setCheckingForUpdates(true);
+        try {
+            const [currentVersion, checkResult] = await Promise.all([
+                CurrentVersion(),
+                CheckForUpdate(""),
+            ]);
+            const normalized: UpdateCheckResult = {
+                currentVersion: checkResult.currentVersion || currentVersion || "unknown",
+                latestVersion: checkResult.latestVersion || "",
+                updateAvailable: Boolean(checkResult.updateAvailable),
+                downloadURL: checkResult.downloadURL || "",
+                notes: checkResult.notes || "",
+                error: checkResult.error || "",
+            };
+            setUpdateStatus(normalized);
+
+            if (!silent) {
+                if (normalized.error) {
+                    toast.error(normalized.error);
+                } else if (normalized.updateAvailable) {
+                    toast.info(`New update available: ${normalized.latestVersion}`);
+                } else {
+                    toast.success("Phant is up to date.");
+                }
+            } else if (!normalized.error && normalized.updateAvailable) {
+                toast.info(`New update available: ${normalized.latestVersion}`);
+            }
+        } finally {
+            setCheckingForUpdates(false);
+        }
+    };
+
+    const downloadUpdate = async () => {
+        setDownloadingUpdate(true);
+        try {
+            const result = await DownloadLatest("");
+            const normalized: UpdateDownloadResult = {
+                currentVersion: result.currentVersion || "",
+                latestVersion: result.latestVersion || "",
+                updateAvailable: Boolean(result.updateAvailable),
+                downloaded: Boolean(result.downloaded),
+                filePath: result.filePath || "",
+                finalURL: result.finalURL || "",
+                statusCode: result.statusCode || 0,
+                bytesWritten: result.bytesWritten || 0,
+                notes: result.notes || "",
+                error: result.error || "",
+            };
+            setUpdateDownloadResult(normalized);
+            setUpdateInstallResult(null);
+            if (normalized.error) {
+                toast.error(normalized.error);
+            } else if (normalized.downloaded) {
+                toast.success("Update downloaded. Click Install & restart to apply.");
+            } else {
+                toast.info("No new update to download.");
+            }
+        } finally {
+            setDownloadingUpdate(false);
+        }
+    };
+
+    const installDownloadedUpdate = async () => {
+        if (!updateDownloadResult?.downloaded || !updateDownloadResult.filePath) {
+            toast.info("Download an update before installing.");
+            return;
+        }
+        setInstallingUpdate(true);
+        try {
+            const result = await InstallDownloaded(updateDownloadResult.filePath);
+            const normalized: UpdateInstallResult = {
+                installed: Boolean(result.installed),
+                targetPath: result.targetPath || "",
+                message: result.message || "",
+                error: result.error || "",
+            };
+            setUpdateInstallResult(normalized);
+
+            if (normalized.error) {
+                toast.error(normalized.error);
+                return;
+            }
+            if (normalized.installed) {
+                toast.success(normalized.message || "Installing update and restarting Phant...");
+                await Application.Quit();
+                return;
+            }
+            toast.info("Install did not start.");
+        } finally {
+            setInstallingUpdate(false);
+        }
+    };
 
     useEffect(() => {
         if (!onboardingReady) {
@@ -258,12 +411,18 @@ function App() {
 
     const saveLicenseFromOnboarding = () => {
         const normalized = licenseKey.trim();
-        if (normalized.length === 0) {
-            window.localStorage.removeItem(LICENSE_KEY_STORAGE);
-            return;
-        }
-
-        window.localStorage.setItem(LICENSE_KEY_STORAGE, normalized);
+        void (async () => {
+            try {
+                const result = await SaveLicenseKey(normalized);
+                if (result.error) {
+                    console.error('Failed to save license key:', result.error);
+                    return;
+                }
+                setLicenseKey(result.licenseKey);
+            } catch (error) {
+                console.error('Failed to save license key:', error);
+            }
+        })();
     };
 
     const runHookSetupFromOnboarding = async () => {
@@ -281,6 +440,13 @@ function App() {
             setInstallingFPMHook(false);
         }
     };
+
+    useEffect(() => {
+        if (!onboardingReady || !onboardingCompleted) {
+            return;
+        }
+        void checkForUpdates(true);
+    }, [onboardingReady, onboardingCompleted]);
 
     if (!onboardingReady) {
         return null;
@@ -359,6 +525,15 @@ function App() {
                             licenseKey={licenseKey}
                             onLicenseKeyChange={setLicenseKey}
                             onSaveLicense={saveLicenseFromOnboarding}
+                            updateStatus={updateStatus}
+                            updateDownloadResult={updateDownloadResult}
+                            updateInstallResult={updateInstallResult}
+                            checkingForUpdates={checkingForUpdates}
+                            downloadingUpdate={downloadingUpdate}
+                            installingUpdate={installingUpdate}
+                            onCheckForUpdates={() => { void checkForUpdates(false); }}
+                            onDownloadUpdate={() => { void downloadUpdate(); }}
+                            onInstallUpdate={() => { void installDownloadedUpdate(); }}
                             valetVerification={valetVerification}
                             refreshingValet={refreshingValet}
                             onRefreshValet={refreshValetVerification}
