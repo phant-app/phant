@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,49 @@ export function SettingsPage({
             : "min-w-24 border-border/60 bg-transparent text-muted-foreground hover:border-primary/60 hover:text-primary"
     );
 
+    const currentVersion = updateStatus?.currentVersion || appVersion || "unknown";
+    const latestVersion = updateStatus?.latestVersion || updateDownloadResult?.latestVersion || "unknown";
+    const hasDownloadedUpdate = Boolean(updateDownloadResult?.downloaded && updateDownloadResult.filePath);
+    const hasUpdateAvailable = Boolean(updateStatus?.updateAvailable);
+
+    const updateState = (() => {
+        if (updateInstallResult?.error || updateDownloadResult?.error || updateStatus?.error) {
+            return { label: "Error", variant: "destructive" as const };
+        }
+
+        if (installingUpdate) {
+            return { label: "Installing", variant: "secondary" as const };
+        }
+
+        if (updateInstallResult?.installed) {
+            return { label: "Installing", variant: "default" as const };
+        }
+
+        if (downloadingUpdate) {
+            return { label: "Downloading", variant: "secondary" as const };
+        }
+
+        if (hasDownloadedUpdate) {
+            return { label: "Ready to install", variant: "default" as const };
+        }
+
+        if (checkingForUpdates) {
+            return { label: "Checking", variant: "secondary" as const };
+        }
+
+        if (hasUpdateAvailable) {
+            return { label: "Update available", variant: "default" as const };
+        }
+
+        if (updateStatus && !updateStatus.error) {
+            return { label: "Up to date", variant: "outline" as const };
+        }
+
+        return { label: "Not checked", variant: "outline" as const };
+    })();
+
+    const releaseNotes = updateDownloadResult?.notes || updateStatus?.notes || "";
+
     return (
         <div className="space-y-6">
             <PageHeader
@@ -162,38 +206,40 @@ export function SettingsPage({
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Updates</CardTitle>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <CardTitle>Updates</CardTitle>
+                        <Badge variant={updateState.variant}>{updateState.label}</Badge>
+                    </div>
                     <CardDescription>Check for new releases and fetch the latest Linux AppImage.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">Current version: {appVersion || "unknown"}</p>
+                    <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 sm:grid-cols-2">
+                        <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Current</p>
+                            <p className="text-lg font-semibold">{currentVersion}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Latest</p>
+                            <p className="text-lg font-semibold">{latestVersion}</p>
+                        </div>
+                    </div>
 
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={onCheckForUpdates} disabled={checkingForUpdates}>
+                        <Button variant={hasUpdateAvailable || hasDownloadedUpdate ? "outline" : "default"} onClick={onCheckForUpdates} disabled={checkingForUpdates}>
                             {checkingForUpdates ? "Checking..." : "Check for updates"}
                         </Button>
-                        <Button onClick={onDownloadUpdate} disabled={downloadingUpdate || !updateStatus?.updateAvailable}>
-                            {downloadingUpdate ? "Downloading..." : "Download latest"}
+                        <Button onClick={onDownloadUpdate} disabled={downloadingUpdate || !hasUpdateAvailable}>
+                            {downloadingUpdate ? "Downloading..." : `Download ${latestVersion}`}
                         </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={onInstallUpdate}
-                            disabled={installingUpdate || !updateDownloadResult?.downloaded || !updateDownloadResult.filePath}
-                        >
-                            {installingUpdate ? "Installing..." : "Install & restart"}
-                        </Button>
+                        {hasDownloadedUpdate ? (
+                            <Button variant="secondary" onClick={onInstallUpdate} disabled={installingUpdate}>
+                                {installingUpdate ? "Installing..." : "Install & restart"}
+                            </Button>
+                        ) : null}
                     </div>
 
                     {updateStatus?.error ? (
                         <p className="text-sm text-destructive">{updateStatus.error}</p>
-                    ) : null}
-
-                    {updateStatus && !updateStatus.error ? (
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>Latest version: {updateStatus.latestVersion || "unknown"}</p>
-                            <p>Status: {updateStatus.updateAvailable ? "Update available" : "Up to date"}</p>
-                            {updateStatus.notes ? <p>Notes: {updateStatus.notes}</p> : null}
-                        </div>
                     ) : null}
 
                     {updateDownloadResult?.error ? (
@@ -201,8 +247,8 @@ export function SettingsPage({
                     ) : null}
 
                     {updateDownloadResult?.downloaded ? (
-                        <div className="space-y-1 text-sm text-emerald-500">
-                            <p>Update downloaded successfully.</p>
+                        <div className="space-y-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-500">
+                            <p className="font-medium">Update downloaded successfully.</p>
                             <p className="text-muted-foreground">File: {updateDownloadResult.filePath}</p>
                             <p className="text-muted-foreground">Bytes: {updateDownloadResult.bytesWritten}</p>
                         </div>
@@ -213,11 +259,18 @@ export function SettingsPage({
                     ) : null}
 
                     {updateInstallResult?.installed ? (
-                        <div className="space-y-1 text-sm text-emerald-500">
-                            <p>{updateInstallResult.message || "Update installation started."}</p>
+                        <div className="space-y-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-500">
+                            <p className="font-medium">{updateInstallResult.message || "Update installation started."}</p>
                             {updateInstallResult.targetPath ? (
                                 <p className="text-muted-foreground">Target: {updateInstallResult.targetPath}</p>
                             ) : null}
+                        </div>
+                    ) : null}
+
+                    {releaseNotes ? (
+                        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-4">
+                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">What&apos;s new</p>
+                            <p className="text-sm text-muted-foreground">{releaseNotes}</p>
                         </div>
                     ) : null}
                 </CardContent>
