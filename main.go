@@ -19,6 +19,8 @@ func main() {
 			application.NewService(appServices.Lifecycle),
 			application.NewService(appServices.Dump),
 			application.NewService(appServices.Setup),
+			application.NewService(appServices.License),
+			application.NewService(appServices.Update),
 			application.NewService(appServices.PHP),
 			application.NewService(appServices.Services),
 		},

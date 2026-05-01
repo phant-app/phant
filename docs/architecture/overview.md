@@ -222,6 +222,8 @@ Why:
 - live event log UI
 - setup diagnostics backend + UI panel
 - CLI hook installer with OS-aware privilege strategy (Linux `pkexec` + manual fallback)
+- license key persistence in backend-managed user config (`~/.config/phant/settings.json`)
+- update service baseline (manifest check + version compare + license-header download with redirect follow)
 - frontend listener lifecycle hardening and duplicate-event protection for runtime stream
 - prepend hook stability fix so `dd()` emits a single event (no double emit)
 - verified hook rewrite path (`Enable CLI Hook`) updates user prepend script in config dir

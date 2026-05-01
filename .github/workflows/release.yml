@@ -1,0 +1,77 @@
+name: Release Phant
+
+on:
+    push:
+        tags:
+            - "v*"
+
+jobs:
+    build-upload-and-update-manifest:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq awscli libgtk-3-dev libwebkit2gtk-4.1-dev
+
+            - name: Install Wails CLI
+              run: |
+                  go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+                  echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+            - name: Build AppImage (Linux x86_64)
+              run: wails3 task linux:create:appimage VERSION=${{ github.ref_name }}
+
+            - name: Remove intermediate standalone binary
+              run: rm -f bin/phant
+
+            - name: Upload to R2
+              env:
+                  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+                  AWS_DEFAULT_REGION: auto
+              run: |
+                  # 1. Upload the permanent archived version
+                  aws s3 cp bin/phant-${{ github.ref_name }}-x86_64.AppImage s3://phant-releases/phant-${{ github.ref_name }}-x86_64.AppImage \
+                    --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+
+                  # 2. Copy it to 'latest' so your Worker can easily serve it
+                  aws s3 cp s3://phant-releases/phant-${{ github.ref_name }}-x86_64.AppImage s3://phant-releases/phant-latest-x86_64.AppImage \
+                    --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+            - name: Checkout website repository
+              uses: actions/checkout@v4
+              with:
+                  repository: phant-app/phant-app.github.io
+                  token: ${{ secrets.WEBSITE_PAT }}
+                  path: website
+
+            - name: Update website manifest
+              env:
+                  VERSION: ${{ github.ref_name }}
+              run: |
+                  cd website
+                  jq ".version = \"$VERSION\"" public/update.json > tmp.json && mv tmp.json public/update.json
+
+                  if git diff --quiet -- public/update.json; then
+                    echo "No manifest changes to commit"
+                    exit 0
+                  fi
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add public/update.json
+                  git commit -m "Update manifest to $VERSION"
+                  git push origin main
