@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	aplicense "phant/internal/app/license"
+	applicense "phant/internal/app/license"
 	domainlicense "phant/internal/domain/license"
 	settingsinfra "phant/internal/infra/settings"
 )
@@ -12,13 +12,13 @@ import (
 const licenseServiceTimeout = 5 * time.Second
 
 type LicenseService struct {
-	service *aplicense.Service
+	service *applicense.Service
 }
 
 func NewLicenseService() *LicenseService {
 	provider := settingsinfra.NewFileProvider()
 	return &LicenseService{
-		service: aplicense.NewService(aplicense.Dependencies{
+		service: applicense.NewService(applicense.Dependencies{
 			LoadSettings: provider.Load,
 			SaveSettings: provider.Save,
 		}),

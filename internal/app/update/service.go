@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	domainlicense "phant/internal/domain/license"
 	domainupdate "phant/internal/domain/update"
@@ -16,12 +17,20 @@ import (
 
 const DefaultManifestURL = "https://phant-app.github.io/update.json"
 
+const (
+	defaultManifestHTTPTimeout = 30 * time.Second
+	defaultDownloadHTTPTimeout = 10 * time.Minute
+	maxManifestBytes           = 64 << 10
+	maxDownloadBytes           = 512 << 20
+)
+
 type Dependencies struct {
-	CurrentVersion    func() string
-	Platform          func() string
-	GetLicenseKey     func(context.Context) domainlicense.KeyResult
-	HTTPClient        func() *http.Client
-	InstallDownloaded func(context.Context, string) domainupdate.InstallResult
+	CurrentVersion     func() string
+	Platform           func() string
+	GetLicenseKey      func(context.Context) domainlicense.KeyResult
+	HTTPClient         func() *http.Client
+	DownloadHTTPClient func() *http.Client
+	InstallDownloaded  func(context.Context, string) domainupdate.InstallResult
 }
 
 type Service struct {
@@ -29,6 +38,7 @@ type Service struct {
 }
 
 func NewService(deps Dependencies) *Service {
+	httpClientProvided := deps.HTTPClient != nil
 	if deps.CurrentVersion == nil {
 		deps.CurrentVersion = func() string { return "" }
 	}
@@ -36,7 +46,14 @@ func NewService(deps Dependencies) *Service {
 		deps.Platform = func() string { return "" }
 	}
 	if deps.HTTPClient == nil {
-		deps.HTTPClient = func() *http.Client { return &http.Client{} }
+		deps.HTTPClient = func() *http.Client { return &http.Client{Timeout: defaultManifestHTTPTimeout} }
+	}
+	if deps.DownloadHTTPClient == nil {
+		if httpClientProvided {
+			deps.DownloadHTTPClient = deps.HTTPClient
+		} else {
+			deps.DownloadHTTPClient = func() *http.Client { return &http.Client{Timeout: defaultDownloadHTTPTimeout} }
+		}
 	}
 	return &Service{deps: deps}
 }
@@ -134,7 +151,7 @@ func (s *Service) DownloadLatest(ctx context.Context, manifestURL string) domain
 		req.Header.Set("X-Phant-Platform", strings.ToLower(platform))
 	}
 
-	resp, err := s.deps.HTTPClient().Do(req)
+	resp, err := s.deps.DownloadHTTPClient().Do(req)
 	if err != nil {
 		return domainupdate.DownloadResult{
 			CurrentVersion:  check.CurrentVersion,
@@ -157,6 +174,17 @@ func (s *Service) DownloadLatest(ctx context.Context, manifestURL string) domain
 			Error:           fmt.Sprintf("update endpoint returned status %d", resp.StatusCode),
 		}
 	}
+	if resp.ContentLength > maxDownloadBytes {
+		return domainupdate.DownloadResult{
+			CurrentVersion:  check.CurrentVersion,
+			LatestVersion:   check.LatestVersion,
+			UpdateAvailable: true,
+			StatusCode:      resp.StatusCode,
+			FinalURL:        resp.Request.URL.String(),
+			Notes:           check.Notes,
+			Error:           fmt.Sprintf("update payload exceeds %d bytes", maxDownloadBytes),
+		}
+	}
 
 	file, err := os.CreateTemp("", "phant-update-*.AppImage")
 	if err != nil {
@@ -172,7 +200,7 @@ func (s *Service) DownloadLatest(ctx context.Context, manifestURL string) domain
 	}
 	defer file.Close()
 
-	written, err := io.Copy(file, resp.Body)
+	written, err := io.Copy(file, io.LimitReader(resp.Body, maxDownloadBytes+1))
 	if err != nil {
 		_ = os.Remove(file.Name())
 		return domainupdate.DownloadResult{
@@ -183,6 +211,19 @@ func (s *Service) DownloadLatest(ctx context.Context, manifestURL string) domain
 			FinalURL:        resp.Request.URL.String(),
 			Notes:           check.Notes,
 			Error:           fmt.Sprintf("write update payload: %v", err),
+		}
+	}
+	if written > maxDownloadBytes {
+		_ = os.Remove(file.Name())
+		return domainupdate.DownloadResult{
+			CurrentVersion:  check.CurrentVersion,
+			LatestVersion:   check.LatestVersion,
+			UpdateAvailable: true,
+			StatusCode:      resp.StatusCode,
+			FinalURL:        resp.Request.URL.String(),
+			BytesWritten:    written,
+			Notes:           check.Notes,
+			Error:           fmt.Sprintf("update payload exceeds %d bytes", maxDownloadBytes),
 		}
 	}
 
@@ -241,8 +282,20 @@ func (s *Service) fetchManifest(ctx context.Context, manifestURL string) (domain
 		return domainupdate.Manifest{}, fmt.Errorf("update manifest returned status %d", resp.StatusCode)
 	}
 
+	if resp.ContentLength > maxManifestBytes {
+		return domainupdate.Manifest{}, fmt.Errorf("update manifest exceeds %d bytes", maxManifestBytes)
+	}
+
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, maxManifestBytes+1))
+	if err != nil {
+		return domainupdate.Manifest{}, fmt.Errorf("read update manifest: %w", err)
+	}
+	if int64(len(payload)) > maxManifestBytes {
+		return domainupdate.Manifest{}, fmt.Errorf("update manifest exceeds %d bytes", maxManifestBytes)
+	}
+
 	var manifest domainupdate.Manifest
-	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
+	if err := json.Unmarshal(payload, &manifest); err != nil {
 		return domainupdate.Manifest{}, fmt.Errorf("decode update manifest: %w", err)
 	}
 

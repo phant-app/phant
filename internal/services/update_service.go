@@ -30,11 +30,12 @@ func NewUpdateService() *UpdateService {
 	updateProvider := updateinfra.NewProviderForCurrentOS(system.NewExecRunner())
 
 	return &UpdateService{service: appupdate.NewService(appupdate.Dependencies{
-		CurrentVersion:    func() string { return BuildVersion },
-		Platform:          updateProvider.Platform,
-		GetLicenseKey:     licenseService.GetKey,
-		HTTPClient:        updateProvider.HTTPClient,
-		InstallDownloaded: updateProvider.InstallDownloaded,
+		CurrentVersion:     func() string { return BuildVersion },
+		Platform:           updateProvider.Platform,
+		GetLicenseKey:      licenseService.GetKey,
+		HTTPClient:         updateProvider.HTTPClient,
+		DownloadHTTPClient: updateProvider.DownloadHTTPClient,
+		InstallDownloaded:  updateProvider.InstallDownloaded,
 	})}
 }
 

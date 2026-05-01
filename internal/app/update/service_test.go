@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	domainlicense "phant/internal/domain/license"
@@ -69,7 +70,8 @@ func TestServiceDownloadLatestFollowsRedirectWithLicense(t *testing.T) {
 		GetLicenseKey: func(context.Context) domainlicense.KeyResult {
 			return domainlicense.KeyResult{LicenseKey: expectedLicense}
 		},
-		HTTPClient: func() *http.Client { return server.Client() },
+		HTTPClient:         func() *http.Client { return server.Client() },
+		DownloadHTTPClient: func() *http.Client { return server.Client() },
 	})
 
 	result := svc.DownloadLatest(context.Background(), server.URL+"/update.json")
@@ -124,5 +126,74 @@ func TestServiceInstallDownloadedRejectsNonLinux(t *testing.T) {
 	result := svc.InstallDownloaded(context.Background(), "/tmp/update.AppImage")
 	if result.Error == "" {
 		t.Fatalf("InstallDownloaded(...) expected unavailable installer error")
+	}
+}
+
+func TestNewServiceSetsDefaultHTTPTimeouts(t *testing.T) {
+	svc := NewService(Dependencies{})
+
+	if svc.deps.HTTPClient().Timeout != defaultManifestHTTPTimeout {
+		t.Fatalf("HTTPClient timeout = %v, want %v", svc.deps.HTTPClient().Timeout, defaultManifestHTTPTimeout)
+	}
+	if svc.deps.DownloadHTTPClient().Timeout != defaultDownloadHTTPTimeout {
+		t.Fatalf("DownloadHTTPClient timeout = %v, want %v", svc.deps.DownloadHTTPClient().Timeout, defaultDownloadHTTPTimeout)
+	}
+}
+
+func TestServiceCheckForUpdateRejectsOversizedManifest(t *testing.T) {
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/update.json" {
+			http.NotFound(w, r)
+			return
+		}
+		payload := `{"version":"1.1.0","linux_url":"` + server.URL + `/download","notes":"` + strings.Repeat("x", maxManifestBytes) + `"}`
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(payload))
+	}))
+	defer server.Close()
+
+	svc := NewService(Dependencies{
+		CurrentVersion: func() string { return "1.0.0" },
+		HTTPClient:     func() *http.Client { return server.Client() },
+	})
+
+	got := svc.CheckForUpdate(context.Background(), server.URL+"/update.json")
+	if got.Error == "" {
+		t.Fatalf("CheckForUpdate(...) expected oversized manifest error")
+	}
+}
+
+func TestServiceDownloadLatestRejectsOversizedPayload(t *testing.T) {
+	const expectedLicense = "PHANT-KEY-1234"
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/update.json":
+			fmt.Fprintf(w, `{"version":"1.2.0","linux_url":"%s/download","notes":"Release note"}`, server.URL)
+		case "/download":
+			http.Redirect(w, r, "/artifact", http.StatusFound)
+		case "/artifact":
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", maxDownloadBytes+1))
+			_, _ = w.Write([]byte("oversized"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := NewService(Dependencies{
+		CurrentVersion: func() string { return "1.0.0" },
+		Platform:       func() string { return "linux" },
+		GetLicenseKey: func(context.Context) domainlicense.KeyResult {
+			return domainlicense.KeyResult{LicenseKey: expectedLicense}
+		},
+		HTTPClient:         func() *http.Client { return server.Client() },
+		DownloadHTTPClient: func() *http.Client { return server.Client() },
+	})
+
+	result := svc.DownloadLatest(context.Background(), server.URL+"/update.json")
+	if result.Error == "" {
+		t.Fatalf("DownloadLatest(...) expected oversized payload error")
 	}
 }

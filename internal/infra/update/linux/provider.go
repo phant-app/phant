@@ -16,6 +16,7 @@ import (
 type Provider struct {
 	runner         system.Runner
 	client         *http.Client
+	downloadClient *http.Client
 	executablePath func() (string, error)
 	getEnv         func(string) string
 }
@@ -24,6 +25,7 @@ func NewProvider(runner system.Runner) *Provider {
 	return &Provider{
 		runner:         runner,
 		client:         &http.Client{Timeout: 30 * time.Second},
+		downloadClient: &http.Client{Timeout: 10 * time.Minute},
 		executablePath: os.Executable,
 		getEnv:         os.Getenv,
 	}
@@ -35,6 +37,10 @@ func (p *Provider) Platform() string {
 
 func (p *Provider) HTTPClient() *http.Client {
 	return p.client
+}
+
+func (p *Provider) DownloadHTTPClient() *http.Client {
+	return p.downloadClient
 }
 
 func (p *Provider) InstallDownloaded(ctx context.Context, downloadedPath string) domainupdate.InstallResult {
@@ -74,20 +80,25 @@ func (p *Provider) InstallDownloaded(ctx context.Context, downloadedPath string)
 	if err != nil {
 		return domainupdate.InstallResult{Error: fmt.Sprintf("create installer script: %v", err)}
 	}
+	scriptPath := installerScript.Name()
 
 	script := buildInstallScript(sourcePath, currentPath)
 	if _, err := installerScript.WriteString(script); err != nil {
 		_ = installerScript.Close()
+		_ = os.Remove(scriptPath)
 		return domainupdate.InstallResult{Error: fmt.Sprintf("write installer script: %v", err)}
 	}
 	if err := installerScript.Close(); err != nil {
+		_ = os.Remove(scriptPath)
 		return domainupdate.InstallResult{Error: fmt.Sprintf("close installer script: %v", err)}
 	}
-	if err := os.Chmod(installerScript.Name(), 0o700); err != nil {
+	if err := os.Chmod(scriptPath, 0o700); err != nil {
+		_ = os.Remove(scriptPath)
 		return domainupdate.InstallResult{Error: fmt.Sprintf("set installer script permissions: %v", err)}
 	}
 
-	if _, err := p.runner.Run(ctx, "nohup", "sh", installerScript.Name()); err != nil {
+	if _, err := p.runner.Run(ctx, "nohup", "sh", scriptPath); err != nil {
+		_ = os.Remove(scriptPath)
 		return domainupdate.InstallResult{Error: fmt.Sprintf("launch installer script: %v", err)}
 	}
 
@@ -142,6 +153,7 @@ func buildInstallScript(sourcePath string, targetPath string) string {
 
 	return "#!/bin/sh\n" +
 		"set -eu\n" +
+		"trap 'rm -f \"$0\"' EXIT\n" +
 		"sleep 2\n" +
 		"if [ ! -f " + quotedSource + " ]; then\n" +
 		"  exit 1\n" +
@@ -152,5 +164,6 @@ func buildInstallScript(sourcePath string, targetPath string) string {
 		"  cp " + quotedTarget + " " + quotedBackup + "\n" +
 		"fi\n" +
 		"mv " + quotedTemp + " " + quotedTarget + "\n" +
+		"rm -f " + quotedSource + "\n" +
 		"nohup " + quotedTarget + " >/dev/null 2>&1 &\n"
 }

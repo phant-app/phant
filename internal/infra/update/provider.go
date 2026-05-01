@@ -11,5 +11,6 @@ import (
 type Provider interface {
 	Platform() string
 	HTTPClient() *http.Client
+	DownloadHTTPClient() *http.Client
 	InstallDownloaded(ctx context.Context, downloadedPath string) domainupdate.InstallResult
 }

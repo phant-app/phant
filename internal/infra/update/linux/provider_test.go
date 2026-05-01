@@ -59,6 +59,12 @@ func TestProviderInstallDownloadedStartsInstaller(t *testing.T) {
 	if !strings.Contains(script, "mv ") || !strings.Contains(script, "nohup ") {
 		t.Fatalf("InstallDownloaded(...) script missing expected commands: %s", script)
 	}
+	if !strings.Contains(script, "trap 'rm -f \"$0\"' EXIT") {
+		t.Fatalf("InstallDownloaded(...) script missing self-cleanup trap: %s", script)
+	}
+	if !strings.Contains(script, "rm -f ") {
+		t.Fatalf("InstallDownloaded(...) script missing downloaded payload cleanup: %s", script)
+	}
 }
 
 func TestProviderInstallDownloadedUsesAppImageEnvWhenMounted(t *testing.T) {
