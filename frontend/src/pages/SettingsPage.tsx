@@ -6,6 +6,8 @@ import { useTheme } from "@/components/theme-provider";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SetupPage } from "@/pages/SetupPage";
 import { ValetPage } from "@/pages/ValetPage";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import type {
     HookInstallResult,
     SetupDiagnostics,
@@ -70,8 +72,9 @@ export function SettingsPage({
     valetRemediationResult: ValetLinuxRemediationResult | null;
     updateDownloadResult: UpdateDownloadResult | null;
     updateInstallResult: UpdateInstallResult | null;
-}) {
+    }) {
     const { theme, setTheme } = useTheme();
+    const [showLicense, setShowLicense] = useState(false);
 
     const themeButtonClass = (isActive: boolean) => (
         isActive
@@ -84,63 +87,76 @@ export function SettingsPage({
             <PageHeader
                 title="Settings"
                 watermark="CFG"
-                description="Manage diagnostics, Valet behavior, integrations, and appearance."
+                description="Manage appearance, licensing, updates, diagnostics, and recovery tools."
             />
-
-            <div className="space-y-2">
-                <h2 className="text-xl font-semibold">Diagnostics</h2>
-                <p className="text-sm text-muted-foreground">Inspect PHP CLI health and manage hook installation.</p>
-                <SetupPage
-                    embedded
-                    diagnostics={diagnostics}
-                    hookResult={hookResult}
-                    installingHook={installingHook}
-                    onRefresh={onRefreshDiagnostics}
-                    onEnable={onEnableCLIHook}
-                />
-            </div>
-
-            <div className="space-y-2">
-                <h2 className="text-xl font-semibold">Valet</h2>
-                <p className="text-sm text-muted-foreground">Diagnose Valet Linux and apply remediation safely.</p>
-                <ValetPage
-                    embedded
-                    valetVerification={valetVerification}
-                    refreshingValet={refreshingValet}
-                    onRefresh={onRefreshValet}
-                    confirmValetRemediation={confirmValetRemediation}
-                    onConfirm={onConfirmValetRemediation}
-                    applyingValetRemediation={applyingValetRemediation}
-                    onApply={onApplyValetRemediation}
-                    valetRemediationResult={valetRemediationResult}
-                />
-            </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Integrations</CardTitle>
-                    <CardDescription>Connections with external tools and services.</CardDescription>
+                    <CardTitle>Appearance</CardTitle>
+                    <CardDescription>Customize the look and feel of Phant.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-wrap gap-4">
+                        <Button
+                            variant="outline"
+                            className={themeButtonClass(theme === "light")}
+                            onClick={() => setTheme("light")}
+                        >
+                            Light
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className={themeButtonClass(theme === "dark")}
+                            onClick={() => setTheme("dark")}
+                        >
+                            Dark
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className={themeButtonClass(theme === "system")}
+                            onClick={() => setTheme("system")}
+                        >
+                            System
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>License</CardTitle>
+                    <CardDescription>Activate Phant and keep your updates eligible.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="license-key">License key</Label>
-                        <div className="flex flex-col gap-2 sm:flex-row">
+                        <div className="relative">
                             <Input
                                 id="license-key"
+                                type={showLicense ? "text" : "password"}
                                 value={licenseKey}
                                 onChange={(event) => onLicenseKeyChange(event.target.value)}
                                 placeholder="PHANT-XXXX-XXXX-XXXX"
+                                className="pr-24"
                             />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowLicense((value) => !value)}
+                                className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                            >
+                                {showLicense ? <EyeOff /> : <Eye />}
+                                <span className="ml-2">{showLicense ? "Hide" : "Show"}</span>
+                            </Button>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs text-muted-foreground">
+                                Used for auto-update eligibility and to support Phant development.
+                            </p>
                             <Button onClick={onSaveLicense}>Save</Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            Used for auto-update eligibility and to support Phant development.
-                        </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        Integrations are optional connections (for example editors, notifications, or tunnel/share tools).
-                        This section is reserved for upcoming integration toggles.
-                    </p>
                 </CardContent>
             </Card>
 
@@ -207,37 +223,34 @@ export function SettingsPage({
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Appearance</CardTitle>
-                    <CardDescription>Customize the look and feel of Phant.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap gap-4">
-                        <Button
-                            variant="outline"
-                            className={themeButtonClass(theme === "light")}
-                            onClick={() => setTheme("light")}
-                        >
-                            Light
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className={themeButtonClass(theme === "dark")}
-                            onClick={() => setTheme("dark")}
-                        >
-                            Dark
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className={themeButtonClass(theme === "system")}
-                            onClick={() => setTheme("system")}
-                        >
-                            System
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="space-y-2">
+                <h2 className="text-xl font-semibold">Diagnostics</h2>
+                <p className="text-sm text-muted-foreground">Inspect PHP CLI health and manage hook installation.</p>
+                <SetupPage
+                    embedded
+                    diagnostics={diagnostics}
+                    hookResult={hookResult}
+                    installingHook={installingHook}
+                    onRefresh={onRefreshDiagnostics}
+                    onEnable={onEnableCLIHook}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <h2 className="text-xl font-semibold">Valet</h2>
+                <p className="text-sm text-muted-foreground">Diagnose Valet Linux and apply remediation safely.</p>
+                <ValetPage
+                    embedded
+                    valetVerification={valetVerification}
+                    refreshingValet={refreshingValet}
+                    onRefresh={onRefreshValet}
+                    confirmValetRemediation={confirmValetRemediation}
+                    onConfirm={onConfirmValetRemediation}
+                    applyingValetRemediation={applyingValetRemediation}
+                    onApply={onApplyValetRemediation}
+                    valetRemediationResult={valetRemediationResult}
+                />
+            </div>
         </div>
     );
 }
