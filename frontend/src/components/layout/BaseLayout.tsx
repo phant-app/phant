@@ -14,7 +14,13 @@ const bottomNavItems = [
     { to: '/settings', label: 'Settings' },
 ];
 
-export function BaseLayout({ children }: { children: ReactNode }) {
+export function BaseLayout({
+    children,
+    version,
+}: {
+    children: ReactNode;
+    version?: string;
+}) {
     return (
         <div className="h-screen w-full overflow-hidden text-foreground selection:bg-primary selection:text-primary-foreground">
             <div className="flex h-full w-full min-h-0 bg-card">
@@ -65,6 +71,10 @@ export function BaseLayout({ children }: { children: ReactNode }) {
                                 ))}
                             </ul>
                         </nav>
+
+                        <div className="mt-4 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                            Version {version || "unknown"}
+                        </div>
                     </div>
                 </aside>
 

@@ -90,6 +90,7 @@ function App() {
     const [onboardingReady, setOnboardingReady] = useState(false);
     const [onboardingCompleted, setOnboardingCompleted] = useState(false);
     const [licenseKey, setLicenseKey] = useState('');
+    const [appVersion, setAppVersion] = useState('unknown');
     const [updateStatus, setUpdateStatus] = useState<UpdateCheckResult | null>(null);
     const [updateDownloadResult, setUpdateDownloadResult] = useState<UpdateDownloadResult | null>(null);
     const [checkingForUpdates, setCheckingForUpdates] = useState(false);
@@ -105,7 +106,11 @@ function App() {
                 || window.localStorage.getItem(ONBOARDING_SEEN_LEGACY_KEY) === 'true';
 
             let resolvedLicenseKey = '';
+            let resolvedVersion = 'unknown';
             try {
+                const currentVersion = await CurrentVersion();
+                resolvedVersion = currentVersion || 'unknown';
+
                 const result = await GetLicenseKey();
                 if (result.error) {
                     console.error('Failed to load license key from backend:', result.error);
@@ -135,6 +140,7 @@ function App() {
 
             setOnboardingCompleted(completedOnboarding);
             setLicenseKey(resolvedLicenseKey);
+            setAppVersion(resolvedVersion);
             setOnboardingReady(true);
         };
 
@@ -160,6 +166,7 @@ function App() {
                 notes: checkResult.notes || "",
                 error: checkResult.error || "",
             };
+            setAppVersion(normalized.currentVersion || "unknown");
             setUpdateStatus(normalized);
 
             if (!silent) {
@@ -475,7 +482,7 @@ function App() {
 
     return (
         <ThemeProvider defaultTheme="dark" storageKey="phant-ui-theme">
-            <BaseLayout>
+            <BaseLayout version={appVersion}>
                 <Routes>
                     <Route path="/" element={<Navigate to="/dumps" replace />} />
                     <Route path={ONBOARDING_PATH} element={<Navigate to="/dumps" replace />} />
@@ -525,6 +532,7 @@ function App() {
                             licenseKey={licenseKey}
                             onLicenseKeyChange={setLicenseKey}
                             onSaveLicense={saveLicenseFromOnboarding}
+                            appVersion={appVersion}
                             updateStatus={updateStatus}
                             updateDownloadResult={updateDownloadResult}
                             updateInstallResult={updateInstallResult}

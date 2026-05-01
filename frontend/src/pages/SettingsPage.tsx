@@ -25,6 +25,7 @@ export function SettingsPage({
     licenseKey,
     onLicenseKeyChange,
     onSaveLicense,
+    appVersion,
     updateStatus,
     checkingForUpdates,
     downloadingUpdate,
@@ -51,6 +52,7 @@ export function SettingsPage({
     licenseKey: string;
     onLicenseKeyChange: (value: string) => void;
     onSaveLicense: () => void;
+    appVersion: string;
     updateStatus: UpdateCheckResult | null;
     checkingForUpdates: boolean;
     downloadingUpdate: boolean;
@@ -148,6 +150,8 @@ export function SettingsPage({
                     <CardDescription>Check for new releases and fetch the latest Linux AppImage.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Current version: {appVersion || "unknown"}</p>
+
                     <div className="flex flex-wrap gap-2">
                         <Button variant="outline" onClick={onCheckForUpdates} disabled={checkingForUpdates}>
                             {checkingForUpdates ? "Checking..." : "Check for updates"}
@@ -170,7 +174,6 @@ export function SettingsPage({
 
                     {updateStatus && !updateStatus.error ? (
                         <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>Current version: {updateStatus.currentVersion || "unknown"}</p>
                             <p>Latest version: {updateStatus.latestVersion || "unknown"}</p>
                             <p>Status: {updateStatus.updateAvailable ? "Update available" : "Up to date"}</p>
                             {updateStatus.notes ? <p>Notes: {updateStatus.notes}</p> : null}
