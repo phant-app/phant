@@ -98,7 +98,7 @@ export function SettingsPage({
         }
 
         if (updateInstallResult?.installed) {
-            return { label: "Installing", variant: "default" as const };
+            return { label: "Installed", variant: "default" as const };
         }
 
         if (downloadingUpdate) {
@@ -181,6 +181,10 @@ export function SettingsPage({
                                 value={licenseKey}
                                 onChange={(event) => onLicenseKeyChange(event.target.value)}
                                 placeholder="PHANT-XXXX-XXXX-XXXX"
+                                autoComplete="new-password"
+                                autoCapitalize="off"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 className="pr-24"
                             />
                             <Button
@@ -246,12 +250,16 @@ export function SettingsPage({
                         <p className="text-sm text-destructive">{updateDownloadResult.error}</p>
                     ) : null}
 
-                    {updateDownloadResult?.downloaded ? (
+                    {hasDownloadedUpdate ? (
                         <div className="space-y-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-500">
                             <p className="font-medium">Update downloaded successfully.</p>
                             <p className="text-muted-foreground">File: {updateDownloadResult.filePath}</p>
                             <p className="text-muted-foreground">Bytes: {updateDownloadResult.bytesWritten}</p>
                         </div>
+                    ) : null}
+
+                    {updateDownloadResult?.downloaded && !updateDownloadResult.filePath ? (
+                        <p className="text-sm text-destructive">Download completed, but file path is missing. Please download again.</p>
                     ) : null}
 
                     {updateInstallResult?.error ? (
