@@ -44,7 +44,7 @@ jobs:
 
       - name: Install Wails CLI
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.74
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Build AppImage (Linux x86_64)
