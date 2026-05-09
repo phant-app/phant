@@ -1,5 +1,9 @@
 # Phant
 
+<p align="center">
+  <img src=".github/phant-hero.png" alt="Phant hero" />
+</p>
+
 Welcome to **Phant** – your all-in-one PHP development environment toolkit. Phant streamlines local PHP development for Laravel and other modern PHP projects, providing a fast, reliable, and user-friendly experience on Linux and macOS.
 
 ## Introduction
