@@ -4,19 +4,32 @@
   <img src=".github/phant-hero.png" alt="Phant hero" />
 </p>
 
-Welcome to **Phant** – your all-in-one PHP development environment toolkit. Phant streamlines local PHP development for Laravel and other modern PHP projects, providing a fast, reliable, and user-friendly experience on Linux and macOS.
+Phant is a Linux desktop app for local PHP development.
 
-## Introduction
+It helps you inspect and manage the parts of your local workflow that are usually spread across terminal commands, PHP config files, Valet Linux, and service status checks.
 
-Phant automates the setup and management of local PHP development environments. It includes:
+## Current Support
 
-- **Service management**: Effortlessly start, stop, and monitor PHP, MySQL/MariaDB, Valkey/Redis, Mailpit, and more.
-- **Valet-style site routing**: Serve multiple projects with automatic local domain routing (like `myapp.test`).
-- **PHP Manager**: Quickly install/switch between installed PHP versions for different projects.
-- **Project tools**: Utilities for database dumps, SSL, and more.
-- **Modern UI**: Clean, responsive interface built with React and Wails.
+- Linux desktop environments are the current supported and documented target.
+- macOS is not currently documented as a supported packaged runtime.
 
-Phant is designed for solo developers, teams, and companies who want a hassle-free, reproducible PHP dev setup.
+## What Phant Does
+
+Phant currently focuses on these workflows:
+
+- **Dump capture**: Monitor `dump()` and `dd()` output in real time from CLI workflows and Valet-backed HTTP requests when hooks are configured.
+- **PHP management**: Install and switch PHP versions, update selected `php.ini` values, and toggle extensions.
+- **Sites and Valet**: Inspect linked sites and parked directories, then verify and remediate Valet Linux and PHP-FPM wiring.
+- **Services status**: Check the current status of common local development services such as PostgreSQL, MySQL, MariaDB, Redis, Valkey, and Mailpit.
+- **Settings and updates**: Manage license key, diagnostics, updates, and app appearance from one place.
+
+Phant is built for developers who want a more visible and manageable local PHP setup without constantly switching between multiple tools.
+
+## Get Started
+
+- User documentation: https://phant-app.github.io/
+- Official Linux build: https://payhip.com/b/ygTYq
+- Source code: https://github.com/phant-app/phant
 
 ## Issues
 
@@ -34,8 +47,8 @@ We recommend opening an issue to discuss major features or changes before submit
 
 ## Support
 
-- For help, check the [documentation](docs/) and [GitHub Discussions](https://github.com/phant-app/phant/discussions).
-- For commercial support or licensing, contact the maintainers via GitHub or the official website.
+- For help, check the [documentation](https://phant-app.github.io/) and [GitHub Discussions](https://github.com/phant-app/phant/discussions).
+- For bugs and reproducible problems, open an [issue](https://github.com/phant-app/phant/issues).
 
 ## Credits
 
@@ -47,10 +60,11 @@ Phant would not be possible without the open source community. Special thanks to
 
 ## License
 
-Phant is licensed under the [Business Source License 1.1](LICENSE).
+Phant is licensed under the [Business Source License 1.1](LICENSE.md).
 
-- ✅ Free for: non-commercial use • individuals • companies with <100 employees • internal testing/dev
-- 💰 Official binaries with auto-updater: $9.99 [here](https://payhip.com/b/ygTYq)
-- 🔓 Automatically converts to MIT License in [YEAR = release year + 5]
+- Phant is source-available under BSL 1.1.
+- The current Additional Use Grant allows non-commercial use, use by individuals, use by companies with fewer than 100 employees, and internal testing/development use.
+- The license converts to MIT on the Change Date defined in `LICENSE.md`.
+- Official Linux build: https://payhip.com/b/ygTYq
 
-Source available: clone, inspect, and build from source anytime.
+See `LICENSE.md` for the exact terms.
