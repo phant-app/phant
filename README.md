@@ -68,3 +68,5 @@ Phant is licensed under the [Business Source License 1.1](LICENSE.md).
 - Official Linux build: https://payhip.com/b/ygTYq
 
 See `LICENSE.md` for the exact terms.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C21Z9DAK)
